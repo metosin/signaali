@@ -145,22 +145,40 @@ It is called exactly once before each re-run of the effect, and also when the no
 
 For example:
 ```clojure
+(require '[signaali.reactive :as sr])
+
 (def book-name (sr/create-state "Alice in wonderland"))
 
-(def improve-mood (sr/create-effect (fn []
-                                      (let [book (search-book @book-name)]
-                                        (borrow-book! book)
-                                        (sr/on-clean-up (fn [] (return-book! book)))
-                                        
-                                        (read-book! book)
-                                        
-                                        ;; An effect can return a value
-                                        {:mood :happy
-                                         :book-name @book-name}))))
-                                       
-(def mood-printer (sr/create-effect (fn []
-                                      ;; Prints the mood after reading a book
-                                      (prn @improve-mood))))
+(def book-reader (sr/create-effect
+                   (fn []
+                     (let [book-name @book-name]
+                       (prn (str "borrow " book-name " from library"))
+                       (sr/on-clean-up (fn [] (prn (str "return " book-name " to library"))))
+
+                       (prn (str "read " book-name))
+
+                       ;; An effect can return a value
+                       {:page-count 100}))))
+(sr/enlist-stale-effectful-node book-reader)
+
+(def total-page-count (sr/create-state 0))
+
+(def page-count-aggregator (sr/create-effect
+                             (fn []
+                               (swap! total-page-count + (:page-count @book-reader)))))
+(sr/enlist-stale-effectful-node page-count-aggregator)
+
+(sr/re-run-stale-effectful-nodes)
+;; "borrow Alice in wonderland from library" is printed
+;; "read Alice in wonderland" is printed
+@total-page-count ; => 100
+
+(reset! book-name "Pepper & Carrot")
+(sr/re-run-stale-effectful-nodes)
+;; "return Alice in wonderland to library" is printed
+;; "borrow Pepper & Carrot from library" is printed
+;; "read Pepper & Carrot" is printed
+@total-page-count ; => 200
 ```
 
 ## Execution ordering amongst the effects
