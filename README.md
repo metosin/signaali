@@ -12,7 +12,7 @@
 - [Unit testing](#unit-testing)
 - [License](#license)
 
-> Naali: Finnish word for the [artic fox](https://en.wikipedia.org/wiki/Arctic_fox).
+> Naali: Finnish word for the [arctic fox](https://en.wikipedia.org/wiki/Arctic_fox).
 
 This small library contains a generic and flexible CLJC implementation of signals.
 It lets you connect data to side effects and lets you run them when their related data
@@ -44,11 +44,11 @@ Signaali is currently [experimental](https://github.com/topics/metosin-experimen
 
 ;; Data and derived data
 
-(def name-of-something (sr/create-signal "Sig the artic fox"))
-@name-of-something ;; => "Sig the artic fox"
+(def name-of-something (sr/create-signal "Sig the arctic fox"))
+@name-of-something ;; => "Sig the arctic fox"
 
 (def greeting-message (sr/create-derived (fn [] (str "Hello, " @name-of-something "!"))))
-@greeting-message ;; => "Hello, Sig the artic fox!"
+@greeting-message ;; => "Hello, Sig the arctic fox!"
 
 (reset! name-of-something "Sig naali")
 @greeting-message ;; => "Hello, Sig naali!"
