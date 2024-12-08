@@ -78,7 +78,7 @@ Signaali is currently [experimental](https://github.com/topics/metosin-experimen
 
 ;; Clean up
 
-(sr/-dispose my-side-effect)
+(sr/dispose my-side-effect)
 
 (reset! name-of-something "Coco")
 
@@ -189,7 +189,7 @@ For example:
 ## Execution ordering amongst the effects
 
 We can ensure an execution between effects if they need to be re-run within the same
-call of `sr/re-run-stale-effectful-nodes` via `(sr/-run-after second-effect first-effect)`.
+call of `sr/re-run-stale-effectful-nodes` via `(sr/run-after second-effect first-effect)`.
 
 ```clojure
 (require '[signaali.reactive :as sr])
@@ -208,7 +208,7 @@ call of `sr/re-run-stale-effectful-nodes` via `(sr/-run-after second-effect firs
 ;; :effect2 :data2
 ;; :effect1 :data1
 
-(sr/-run-after effect2 effect1)
+(sr/run-after effect2 effect1)
 
 (reset! data1 :data1)
 (reset! data2 :data2)
@@ -237,7 +237,7 @@ Once a node is no longer used, you can dispose it.
 
 Example:
 ```clojure
-(sr/-dispose my-effect)
+(sr/dispose my-effect)
 ```
 
 Disposing a node:

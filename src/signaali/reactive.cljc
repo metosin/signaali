@@ -16,8 +16,10 @@
   (-notify-signal [this is-for-sure source])
   (-run [this])
   (-set-on-clean-up-callback [this callback])
-  (-run-after [this higher-priority-node])
-  (-dispose [this]))
+
+  ;; Public API
+  (run-after [this higher-priority-node])
+  (dispose [this]))
 
 (defprotocol IReactiveNodeInternals
   (-get-propagation-filter-fn [this])
@@ -151,7 +153,7 @@
     (mut-set/disj! subscribers subscriber)
     (when (and dispose-on-zero-subscribers
                (zero? (mut-set/count subscribers)))
-      (-dispose this)))
+      (dispose this)))
 
   (-notify-signal [this is-for-sure source]
     (case status
@@ -214,10 +216,10 @@
   (-set-on-clean-up-callback [this callback]
     (set! on-clean-up-callback callback))
 
-  (-run-after [this higher-priority-node]
+  (run-after [this higher-priority-node]
     (mut-set/conj! higher-priority-nodes higher-priority-node))
 
-  (-dispose [this]
+  (dispose [this]
     (-run-on-clean-up-callback this)
     (notify-lifecycle-event this :dispose)
     (-unsubscribe-from-all-sources this)
@@ -368,8 +370,8 @@
      (let [scope (create-effect (fn []
                                   (run! -run owned-effects)
                                   (on-clean-up (fn []
-                                                 (run! -dispose owned-effects))))
+                                                 (run! dispose owned-effects))))
                                 options)]
        (doseq [owned-effect owned-effects]
-         (-run-after owned-effect scope))
+         (run-after owned-effect scope))
        scope))))

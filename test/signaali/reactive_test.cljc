@@ -196,7 +196,7 @@
                                 (let [x-value @x]
                                   (swap! log conj [:z x-value]))))]
 
-      (sr/-run-after y z) ;; When both are scheduled for re-run, y runs after z.
+      (sr/run-after y z) ;; When both are scheduled for re-run, y runs after z.
 
       ;; Need to run the effects once, so that they know about their dependencies.
       ;; y runs after z, but here z is not scheduled for re-run yet.
@@ -229,7 +229,7 @@
                                   (sr/on-clean-up (fn []
                                                     (swap! log conj [:z- x-value]))))))]
 
-      (sr/-run-after y z) ;; When both are scheduled for re-run, y runs after z.
+      (sr/run-after y z) ;; When both are scheduled for re-run, y runs after z.
 
       ;; Need to run the effects once, so that they know about their dependencies.
       @y
