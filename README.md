@@ -14,13 +14,11 @@
 
 > Naali: Finnish word for the [arctic fox](https://en.wikipedia.org/wiki/Arctic_fox).
 
-This small library contains a generic and flexible CLJC implementation of signals.
-It lets you connect data to side effects and lets you run them when their related data
-changes.
-
-This type of library can be used for building **reactive systems**.
+This library contains a flexible CLJC implementation of signals, which are used
+for building **reactive systems**.
 The author is using it for building a web framework, but it could also be used for many other types
 of applications.
+You can read more about signals [in this article](https://dev.to/milomg/super-charging-fine-grained-reactive-performance-47ph).
 
 With Signaali, you can dynamically create and maintain a directed aclyclic graph
 where the nodes are either:
@@ -266,6 +264,14 @@ The tests run in both Clojure & Clojurescript.
 npm install
 ./bin/kaocha
 ```
+
+## Similar Clojure libraries
+
+- [Reagent Atom](https://github.com/reagent-project/reagent/blob/master/src/reagent/ratom.cljs), CLJS only.
+- [Signals](https://github.com/kunstmusik/signals), CLJ only.
+- [Flex](https://github.com/lilactown/flex), CLJC.
+
+Please make a PR if you think that a library is missing from the list.
 
 ## License
 
