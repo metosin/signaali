@@ -57,12 +57,13 @@ Signaali is currently [experimental](https://github.com/topics/metosin-experimen
 ;; Effects
 
 (def my-side-effect (sr/create-effect (fn [] (prn @greeting-message))))
+
 ;; You can run the effect by hand:
 @my-side-effect  ;; "Hello, Sig naali!" is printed
+
 ;; alternatively, you can enlist it as a stale effectful node for it
 ;; to be run later, on the next call of `sr/re-run-stale-effectful-nodes`
 #_(sr/enlist-stale-effectful-node my-side-effect)
-
 
 (reset! name-of-something "Alice")
 ;; Nothing is printed
@@ -145,35 +146,41 @@ It is called exactly once before each re-run of the effect, and also when the no
 
 For example:
 ```clojure
-(require '[signaali.reactive :as sr])
+(def book-name
+  (sr/create-state "Alice in wonderland"))
 
-(def book-name (sr/create-state "Alice in wonderland"))
+(def book-reader
+  (sr/create-effect
+   (fn []
+     (let [book-name @book-name]
+       (prn (str "borrow " book-name " from library"))
+       (sr/on-clean-up (fn [] (prn (str "return " book-name " to library"))))
 
-(def book-reader (sr/create-effect
-                   (fn []
-                     (let [book-name @book-name]
-                       (prn (str "borrow " book-name " from library"))
-                       (sr/on-clean-up (fn [] (prn (str "return " book-name " to library"))))
+       (prn (str "read " book-name))
 
-                       (prn (str "read " book-name))
+       ;; An effect can return a value
+       {:page-count 100}))))
 
-                       ;; An effect can return a value
-                       {:page-count 100}))))
 (sr/enlist-stale-effectful-node book-reader)
 
-(def total-page-count (sr/create-state 0))
+(def total-page-count
+  (sr/create-state 0))
 
-(def page-count-aggregator (sr/create-effect
-                             (fn []
-                               (swap! total-page-count + (:page-count @book-reader)))))
+(def page-count-aggregator
+  (sr/create-effect
+   (fn []
+     (swap! total-page-count + (:page-count @book-reader)))))
+
 (sr/enlist-stale-effectful-node page-count-aggregator)
 
 (sr/re-run-stale-effectful-nodes)
 ;; "borrow Alice in wonderland from library" is printed
 ;; "read Alice in wonderland" is printed
+
 @total-page-count ; => 100
 
 (reset! book-name "Pepper & Carrot")
+
 (sr/re-run-stale-effectful-nodes)
 ;; "return Alice in wonderland to library" is printed
 ;; "borrow Pepper & Carrot from library" is printed
@@ -191,8 +198,10 @@ call of `sr/re-run-stale-effectful-nodes` via `(sr/-run-after second-effect firs
 
 (def data1 (sr/create-signal :data1))
 (def data2 (sr/create-signal :data2))
+
 (def effect1 (sr/create-effect (fn [] (prn :effect1 @data1))))
 (def effect2 (sr/create-effect (fn [] (prn :effect2 @data2))))
+
 (sr/enlist-stale-effectful-node effect1)
 (sr/enlist-stale-effectful-node effect2)
 
@@ -202,8 +211,10 @@ call of `sr/re-run-stale-effectful-nodes` via `(sr/-run-after second-effect firs
 ;; :effect1 :data1
 
 (sr/-run-after effect2 effect1)
+
 (reset! data1 :data1)
 (reset! data2 :data2)
+
 (sr/re-run-stale-effectful-nodes)
 ;; Lines printed in deterministic order:
 ;; :effect1 :data1
@@ -211,11 +222,13 @@ call of `sr/re-run-stale-effectful-nodes` via `(sr/-run-after second-effect firs
 
 ;; Running effect1 doesn't force effect2 to run
 (reset! data1 :data1)
+
 (sr/re-run-stale-effectful-nodes)
 ;; :effect1 :data1
 
 ;; and vice-versa
 (reset! data2 :data2)
+
 (sr/re-run-stale-effectful-nodes)
 ;; :effect2 :data2
 ```
@@ -240,8 +253,9 @@ If needed, this behavior can be avoided by using the `:dispose-on-zero-subscribe
 
 For example:
 ```clojure
-(sr/create-derived (fn [] ,,,)
-                   {:dispose-on-zero-subscribers false})
+(sr/create-derived 
+ (fn [] ,,,)
+ {:dispose-on-zero-subscribers false})
 ```
 
 ## Unit testing
