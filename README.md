@@ -188,7 +188,7 @@ For example:
 
 ## Execution ordering amongst the effects
 
-We can ensure an execution between effects if they need to be re-run within the same
+We can ensure an execution order between effects if they need to be re-run within the same
 call of `sr/re-run-stale-effectful-nodes` via `(sr/run-after second-effect first-effect)`.
 
 ```clojure
