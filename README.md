@@ -271,6 +271,9 @@ npm install
 - [Signals](https://github.com/kunstmusik/signals), CLJ only.
 - [Flex](https://github.com/lilactown/flex), CLJC.
 
+Quite different but on the same topic:
+- [Missionary](https://github.com/leonoel/missionary) 
+
 Please make a PR if you think that a library is missing from the list.
 
 ## License
