@@ -243,4 +243,33 @@
       (sr/re-run-stale-effectful-nodes)
       (is (= [[:z- 1] [:z+ 2] [:y- 1] [:y+ 2]] @log))
 
-      ,)))
+      ,))
+
+  (testing "an effect doesn't re-run after a memo is updated with the same value"
+    (let [log (atom [])
+          a (sr/create-signal 2)
+          b (sr/create-signal 2)
+          c (sr/create-memo (fn []
+                              (let [sum (+ @a @b)]
+                                (swap! log conj [:c sum])
+                                sum)))
+          z (sr/create-effect (fn []
+                                (let [c-value @c]
+                                  (swap! log conj [:z+ c-value])
+                                  (sr/on-clean-up (fn []
+                                                    (swap! log conj [:z- c-value]))))))]
+      ;; First run
+      @z
+      (is (= [[:c 4] [:z+ 4]] @log))
+
+      ;; Then, when the memo node is updated with the same value ...
+      (reset! log [])
+      (swap! a dec)
+      (swap! b inc)
+      (sr/re-run-stale-effectful-nodes)
+      ;; ... the effect is not re-run
+      (is (= [[:c 4]] @log))
+
+      ,))
+
+  ,)
