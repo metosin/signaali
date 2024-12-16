@@ -184,7 +184,9 @@
         ;; Decide if we should transition to :up-to-date or to :stale
         (loop [maybe-sources (seq maybe-sources)]
           (if (nil? maybe-sources)
-            (set! status :up-to-date)
+            (do
+              (set! status :up-to-date)
+              (set! last-run-propagated-value false))
             (let [^ReactiveNode maybe-source (first maybe-sources)]
               (-run maybe-source)
               (if (.-last-run-propagated-value maybe-source)
