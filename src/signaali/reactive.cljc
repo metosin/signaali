@@ -19,6 +19,7 @@
 
   ;; Public API
   (run-after [this higher-priority-node])
+  (set-on-dispose-callback [this callback])
   (dispose [this]))
 
 (defprotocol IReactiveNodeInternals
@@ -77,6 +78,7 @@
                                 ^:mutable sources
                                 ^:mutable subscribers
                                 ^:mutable on-clean-up-callback
+                                ^:mutable on-dispose-callback
                                 ^:mutable higher-priority-nodes
                                 metadata]
                          :clj [^:volatile-mutable value
@@ -90,6 +92,7 @@
                                ^:volatile-mutable sources
                                ^:volatile-mutable subscribers
                                ^:volatile-mutable on-clean-up-callback
+                               ^:volatile-mutable on-dispose-callback
                                ^:volatile-mutable higher-priority-nodes
                                metadata])
   #?@(:cljs [ISwap
@@ -221,13 +224,18 @@
   (run-after [this higher-priority-node]
     (mut-set/conj! higher-priority-nodes higher-priority-node))
 
+  (set-on-dispose-callback [this callback]
+    (set! on-dispose-callback callback))
+
   (dispose [this]
     (-run-on-clean-up-callback this)
     (notify-lifecycle-event this :dispose)
     (-unsubscribe-from-all-sources this)
     (unlist-stale-effectful-node this)
     (set! status :idle)
-    (mut-set/clear! higher-priority-nodes))
+    (mut-set/clear! higher-priority-nodes)
+    (when (some? on-dispose-callback)
+      (on-dispose-callback this)))
 
   IReactiveNodeInternals
   (-get-propagation-filter-fn [this] propagation-filter-fn)
@@ -261,18 +269,20 @@
                                   propagation-filter-fn
                                   has-side-effect
                                   dispose-on-zero-subscribers
+                                  on-dispose-callback
                                   metadata]}]
   (let [reactive-node (ReactiveNode. value
                                      run-fn
                                      propagation-filter-fn
                                      (boolean has-side-effect)
-                                     dispose-on-zero-subscribers
+                                     (boolean dispose-on-zero-subscribers)
                                      :idle                             ;; status
                                      false                             ;; last-run-propagated-value
                                      (mut-set/make-mutable-object-set) ;; maybe-sources
                                      (mut-set/make-mutable-object-set) ;; sources
                                      (mut-set/make-mutable-object-set) ;; subscribers
                                      nil                               ;; on-clean-up-callback
+                                     on-dispose-callback
                                      (mut-set/make-mutable-object-set) ;; higher-priority-nodes
                                      metadata
                                      ,)]
