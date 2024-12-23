@@ -124,7 +124,7 @@
               (.reset this (apply f value a b xs)))
             (^boolean compareAndSet [this ^Object old-value, ^Object new-value]
               (if (identical? value old-value)
-                (do (set! value new-value)
+                (do (.reset this new-value)
                     true)
                 false))
             (reset [this ^Object new-value]
@@ -206,10 +206,13 @@
 
           ;; Run the node.
           (notify-lifecycle-event this :run)
-          (let [old-value value]
-            (set! value (with-observer this run-fn))
-            (set! last-run-propagated-value (or (nil? propagation-filter-fn)
-                                                (propagation-filter-fn old-value value))))
+          (let [new-value (with-observer this run-fn)]
+            (if (or (nil? propagation-filter-fn)
+                    (propagation-filter-fn value new-value))
+              (do
+                (set! value new-value)
+                (set! last-run-propagated-value true))
+              (set! last-run-propagated-value false)))
           (set! status :up-to-date)
           (notify-lifecycle-event this status)
 
