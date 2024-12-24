@@ -165,7 +165,7 @@
 
   (-notify-as-a-subscriber [this is-for-sure source]
     (case status
-      :up-to-date
+      (:unset :up-to-date)
       (do
         (when-not is-for-sure
           (mut-set/conj! maybe-sources source))
