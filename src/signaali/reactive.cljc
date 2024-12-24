@@ -13,7 +13,7 @@
   (-remove-source [this source])
   (-add-subscriber [this subscriber])
   (-remove-subscriber [this subscriber])
-  (-notify-signal [this is-for-sure source])
+  (-notify-as-a-subscriber [this is-for-sure source])
   (-run [this])
   (-set-on-clean-up-callback [this callback])
 
@@ -158,7 +158,7 @@
                (zero? (mut-set/count subscribers)))
       (dispose this)))
 
-  (-notify-signal [this is-for-sure source]
+  (-notify-as-a-subscriber [this is-for-sure source]
     (case status
       :up-to-date
       (do
@@ -248,7 +248,7 @@
 
   (-notify-subscribers [this is-for-sure]
     (doseq [^ReactiveNode subscriber subscribers]
-      (-notify-signal subscriber is-for-sure this)))
+      (-notify-as-a-subscriber subscriber is-for-sure this)))
 
   (-unsubscribe-from-all-sources [this]
     (doseq [^ReactiveNode source sources]
