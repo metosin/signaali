@@ -274,6 +274,7 @@
 
 (defn make-reactive-node [{:keys [value
                                   run-fn
+                                  sources
                                   propagation-filter-fn
                                   has-side-effect
                                   dispose-on-zero-subscribers
@@ -295,6 +296,9 @@
                                      (mut-set/make-mutable-object-set) ;; higher-priority-nodes
                                      metadata
                                      ,)]
+    (doseq [source sources]
+      (-add-source reactive-node source)
+      (-add-subscriber source reactive-node))
     (notify-lifecycle-event reactive-node :create)
     reactive-node))
 
