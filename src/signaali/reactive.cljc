@@ -57,6 +57,11 @@
 ;; ----------------------------------------------
 ;; Lifecycle event global notification
 
+(defn debug-prn
+  "To use: (binding [*notify-lifecycle-event* debug-prn] ,,,)"
+  [reactive-node event-type]
+  (prn (-> reactive-node meta :name) event-type))
+
 (def ^:dynamic *notify-lifecycle-event* nil)
 
 (defmacro notify-lifecycle-event [reactive-node event-type]
@@ -72,7 +77,7 @@
                                 propagation-filter-fn
                                 ^boolean has-side-effect
                                 ^boolean dispose-on-zero-subscribers
-                                ^:mutable status ;; possible values are :idle, :maybe-stale, :stale, :up-to-date
+                                ^:mutable status ;; possible values are :unset, :maybe-stale, :stale, :up-to-date
                                 ^:mutable last-run-propagated-value
                                 ^:mutable maybe-sources
                                 ^:mutable sources
@@ -86,7 +91,7 @@
                                propagation-filter-fn
                                ^boolean has-side-effect
                                ^boolean dispose-on-zero-subscribers
-                               ^:volatile-mutable status ;; possible values are :idle, :maybe-stale, :stale, :up-to-date
+                               ^:volatile-mutable status ;; possible values are :unset, :maybe-stale, :stale, :up-to-date
                                ^:volatile-mutable last-run-propagated-value
                                ^:volatile-mutable maybe-sources
                                ^:volatile-mutable sources
@@ -197,7 +202,7 @@
                 (recur (next maybe-sources))))))
         (mut-set/clear! maybe-sources))
 
-      (when (or (= status :idle)
+      (when (or (= status :unset)
                 (= status :stale))
         ;; Clean up the node.
         (-run-on-clean-up-callback this)
@@ -235,7 +240,7 @@
     (notify-lifecycle-event this :dispose)
     (-unsubscribe-from-all-sources this)
     (unlist-stale-effectful-node this)
-    (set! status :idle)
+    (set! status :unset)
     (mut-set/clear! higher-priority-nodes)
     (when (some? on-dispose-callback)
       (on-dispose-callback this)))
@@ -273,13 +278,14 @@
                                   has-side-effect
                                   dispose-on-zero-subscribers
                                   on-dispose-callback
-                                  metadata]}]
+                                  metadata]
+                           :as options}]
   (let [reactive-node (ReactiveNode. value
                                      run-fn
                                      propagation-filter-fn
                                      (boolean has-side-effect)
                                      (boolean dispose-on-zero-subscribers)
-                                     :idle                             ;; status
+                                     (if (contains? options :value) :up-to-date :unset) ;; status
                                      false                             ;; last-run-propagated-value
                                      (mut-set/make-mutable-object-set) ;; maybe-sources
                                      (mut-set/make-mutable-object-set) ;; sources
