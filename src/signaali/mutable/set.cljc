@@ -22,6 +22,10 @@
   #?(:cljs (.-size ^set set)
      :clj (.size ^HashSet set)))
 
-(defn make-mutable-object-set []
-  #?(:cljs (js/Set.)
-     :clj (HashSet.)))
+(defn make-mutable-object-set
+  ([]
+   #?(:cljs (js/Set.)
+      :clj (HashSet.)))
+  ([coll]
+   #?(:cljs (js/Set. coll)
+      :clj (HashSet. (or coll [])))))

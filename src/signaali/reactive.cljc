@@ -16,9 +16,11 @@
   (add-signal-watcher [this signal-watcher])
   (remove-signal-watcher [this signal-watcher]))
 
+;; Observes deref calls on signal sources and on-clean-up calls
+(defprotocol IRunObserver
+  (notify-deref-on-signal-source [this signal-source]))
+
 (defprotocol IReactiveNode
-  (-add-signal-source [this signal-source])
-  (-remove-signal-source [this signal-source])
   (-run [this])
   (-set-on-clean-up-callback [this callback])
 
@@ -146,8 +148,7 @@
   IDeref
   (#?(:cljs -deref, :clj deref) [this]
     (when-some [^ReactiveNode current-observer (get-current-observer)]
-      (add-signal-watcher this current-observer)
-      (-add-signal-source current-observer this))
+      (notify-deref-on-signal-source current-observer this))
     (-run this)
     value)
 
@@ -189,13 +190,12 @@
                (zero? (mut-set/count signal-watchers)))
       (dispose this)))
 
-  IReactiveNode
-  (-add-signal-source [this signal-source]
+  IRunObserver
+  (notify-deref-on-signal-source [this signal-source]
+    (add-signal-watcher signal-source this)
     (mut-set/conj! signal-sources signal-source))
 
-  (-remove-signal-source [this signal-source]
-    (mut-set/disj! signal-sources signal-source))
-
+  IReactiveNode
   (-run [this]
     (when (some? run-fn)
       (when (= status :maybe-stale)
@@ -293,17 +293,16 @@
                                      (boolean has-side-effect)
                                      (boolean dispose-on-zero-signal-watchers)
                                      (if (contains? options :value) :up-to-date :unset) ;; status
-                                     false                             ;; last-run-propagated-value
-                                     (mut-set/make-mutable-object-set) ;; maybe-signal-sources
-                                     (mut-set/make-mutable-object-set) ;; signal-sources
-                                     (mut-set/make-mutable-object-set) ;; signal-watchers
-                                     nil                               ;; on-clean-up-callback
+                                     false                                              ;; last-run-propagated-value
+                                     (mut-set/make-mutable-object-set)                  ;; maybe-signal-sources
+                                     (mut-set/make-mutable-object-set signal-sources)   ;; signal-sources
+                                     (mut-set/make-mutable-object-set)                  ;; signal-watchers
+                                     nil                                                ;; on-clean-up-callback
                                      on-dispose-callback
-                                     (mut-set/make-mutable-object-set) ;; higher-priority-nodes
+                                     (mut-set/make-mutable-object-set)                  ;; higher-priority-nodes
                                      metadata
                                      ,)]
-    (doseq [signal-source signal-sources]
-      (-add-signal-source reactive-node signal-source)
+    (doseq [^ISignalSource signal-source signal-sources]
       (add-signal-watcher signal-source reactive-node))
     (notify-lifecycle-event reactive-node :create)
     reactive-node))
