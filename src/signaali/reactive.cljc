@@ -14,16 +14,15 @@
 (defprotocol ISignalSource
   (notify-signal-watchers [this is-for-sure])
   (add-signal-watcher [this signal-watcher])
-  (remove-signal-watcher [this signal-watcher]))
+  (remove-signal-watcher [this signal-watcher])
+  (run-if-needed [this]))
 
 (defprotocol IRunObserver
   (notify-deref-on-signal-source [this signal-source])
   (add-clean-up-callback [this callback]))
 
+;; Public API
 (defprotocol IReactiveNode
-  (-run [this])
-
-  ;; Public API
   (run-after [this higher-priority-node])
   (set-on-dispose-callback [this callback])
   (dispose [this]))
@@ -148,7 +147,7 @@
   (#?(:cljs -deref, :clj deref) [this]
     (when-some [^IRunObserver current-observer (get-current-observer)]
       (notify-deref-on-signal-source current-observer this))
-    (-run this)
+    (run-if-needed this)
     value)
 
   ISignalWatcher
@@ -189,18 +188,7 @@
                (zero? (mut-set/count signal-watchers)))
       (dispose this)))
 
-  IRunObserver
-  (notify-deref-on-signal-source [this signal-source]
-    (add-signal-watcher signal-source this)
-    (mut-set/conj! signal-sources signal-source))
-
-  (add-clean-up-callback [this callback]
-    (when (nil? clean-up-callbacks)
-      (set! clean-up-callbacks (mut-stack/make-mutable-object-stack)))
-    (mut-stack/conj! clean-up-callbacks callback))
-
-  IReactiveNode
-  (-run [this]
+  (run-if-needed [this]
     (when (some? run-fn)
       (when (= status :maybe-stale)
         ;; Decide if we should transition to :up-to-date or to :stale
@@ -209,9 +197,9 @@
             (do
               (set! status :up-to-date)
               (set! last-run-propagated-value false))
-            (let [^ReactiveNode maybe-signal-source (first maybe-signal-sources)]
-              (-run maybe-signal-source)
-              (if (.-last-run-propagated-value maybe-signal-source)
+            (let [^ISignalSource maybe-signal-source (first maybe-signal-sources)
+                  its-last-effective-run-propagated-value (run-if-needed maybe-signal-source)]
+              (if its-last-effective-run-propagated-value
                 (set! status :stale)
                 (recur (next maybe-signal-sources))))))
         (mut-set/clear! maybe-signal-sources))
@@ -238,8 +226,21 @@
           ;; Unsubscribe from the old signal sources which are no longer used.
           (doseq [^ISignalSource old-signal-source old-signal-sources]
             (when-not (mut-set/contains? signal-sources old-signal-source)
-              (remove-signal-watcher old-signal-source this)))))))
+              (remove-signal-watcher old-signal-source this)))))
 
+      last-run-propagated-value))
+
+  IRunObserver
+  (notify-deref-on-signal-source [this signal-source]
+    (add-signal-watcher signal-source this)
+    (mut-set/conj! signal-sources signal-source))
+
+  (add-clean-up-callback [this callback]
+    (when (nil? clean-up-callbacks)
+      (set! clean-up-callbacks (mut-stack/make-mutable-object-stack)))
+    (mut-stack/conj! clean-up-callbacks callback))
+
+  IReactiveNode
   (run-after [this higher-priority-node]
     (mut-set/conj! higher-priority-nodes higher-priority-node))
 
@@ -327,7 +328,7 @@
                                (run! run-this-first (-get-higher-priority-nodes node)))
                              ;; We need to check again, in case this node was disposed by a higher-priority node.
                              (when (mut-set/contains? stale-effectful-nodes node)
-                               (-run node)
+                               (run-if-needed node)
                                (mut-set/disj! stale-effectful-nodes node)))]
     (run! run-nodes-in-order #?(:cljs stale-effectful-nodes
                                 ;; TODO: use Iterator.remove() instead of cloning.
