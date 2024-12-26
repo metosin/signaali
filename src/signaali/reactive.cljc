@@ -16,13 +16,12 @@
   (add-signal-watcher [this signal-watcher])
   (remove-signal-watcher [this signal-watcher]))
 
-;; Observes deref calls on signal sources and on-clean-up calls
 (defprotocol IRunObserver
-  (notify-deref-on-signal-source [this signal-source]))
+  (notify-deref-on-signal-source [this signal-source])
+  (add-clean-up-callback [this callback]))
 
 (defprotocol IReactiveNode
   (-run [this])
-  (-set-on-clean-up-callback [this callback])
 
   ;; Public API
   (run-after [this higher-priority-node])
@@ -35,7 +34,7 @@
   (-get-higher-priority-nodes [this])
   (-set-value! [this new-value])
   (-unsubscribe-from-all-signal-sources [this])
-  (-run-on-clean-up-callback [this]))
+  (-run-on-clean-up-callbacks [this]))
 
 ;; ----------------------------------------------
 ;; Observer stack
@@ -88,7 +87,7 @@
                                 ^:mutable maybe-signal-sources
                                 ^:mutable signal-sources
                                 ^:mutable signal-watchers
-                                ^:mutable on-clean-up-callback
+                                ^:mutable clean-up-callbacks
                                 ^:mutable on-dispose-callback
                                 ^:mutable higher-priority-nodes
                                 metadata]
@@ -102,7 +101,7 @@
                                ^:volatile-mutable maybe-signal-sources
                                ^:volatile-mutable signal-sources
                                ^:volatile-mutable signal-watchers
-                               ^:volatile-mutable on-clean-up-callback
+                               ^:volatile-mutable clean-up-callbacks
                                ^:volatile-mutable on-dispose-callback
                                ^:volatile-mutable higher-priority-nodes
                                metadata])
@@ -147,7 +146,7 @@
 
   IDeref
   (#?(:cljs -deref, :clj deref) [this]
-    (when-some [^ReactiveNode current-observer (get-current-observer)]
+    (when-some [^IRunObserver current-observer (get-current-observer)]
       (notify-deref-on-signal-source current-observer this))
     (-run this)
     value)
@@ -178,7 +177,7 @@
 
   ISignalSource
   (notify-signal-watchers [this is-for-sure]
-    (doseq [^ReactiveNode signal-watcher signal-watchers]
+    (doseq [^ISignalWatcher signal-watcher signal-watchers]
       (notify-signal-watcher signal-watcher is-for-sure this)))
 
   (add-signal-watcher [this signal-watcher]
@@ -194,6 +193,11 @@
   (notify-deref-on-signal-source [this signal-source]
     (add-signal-watcher signal-source this)
     (mut-set/conj! signal-sources signal-source))
+
+  (add-clean-up-callback [this callback]
+    (when (nil? clean-up-callbacks)
+      (set! clean-up-callbacks (mut-stack/make-mutable-object-stack)))
+    (mut-stack/conj! clean-up-callbacks callback))
 
   IReactiveNode
   (-run [this]
@@ -215,7 +219,7 @@
       (when (or (= status :unset)
                 (= status :stale))
         ;; Clean up the node.
-        (-run-on-clean-up-callback this)
+        (-run-on-clean-up-callbacks this)
         (let [old-signal-sources signal-sources]
           (set! signal-sources (mut-set/make-mutable-object-set))
 
@@ -232,12 +236,9 @@
           (notify-lifecycle-event this status)
 
           ;; Unsubscribe from the old signal sources which are no longer used.
-          (doseq [^ReactiveNode old-signal-source old-signal-sources]
+          (doseq [^ISignalSource old-signal-source old-signal-sources]
             (when-not (mut-set/contains? signal-sources old-signal-source)
               (remove-signal-watcher old-signal-source this)))))))
-
-  (-set-on-clean-up-callback [this callback]
-    (set! on-clean-up-callback callback))
 
   (run-after [this higher-priority-node]
     (mut-set/conj! higher-priority-nodes higher-priority-node))
@@ -246,7 +247,7 @@
     (set! on-dispose-callback callback))
 
   (dispose [this]
-    (-run-on-clean-up-callback this)
+    (-run-on-clean-up-callbacks this)
     (notify-lifecycle-event this :dispose)
     (-unsubscribe-from-all-signal-sources this)
     (unlist-stale-effectful-node this)
@@ -262,15 +263,17 @@
   (-set-value! [this new-value] (set! value new-value))
 
   (-unsubscribe-from-all-signal-sources [this]
-    (doseq [^ReactiveNode signal-source signal-sources]
+    (doseq [^ISignalSource signal-source signal-sources]
       (remove-signal-watcher signal-source this))
     (mut-set/clear! signal-sources))
 
-  (-run-on-clean-up-callback [this]
-    (when (some? on-clean-up-callback)
-      (notify-lifecycle-event this :clean-up)
-      (on-clean-up-callback)
-      (set! on-clean-up-callback nil)))
+  (-run-on-clean-up-callbacks [this]
+    (notify-lifecycle-event this :clean-up)
+    (when (some? clean-up-callbacks)
+      ;; TODO: improve this loop
+      (doseq [clean-up-callback (reverse clean-up-callbacks)]
+        (clean-up-callback))
+      (set! clean-up-callbacks nil)))
 
   IMeta
   (#?(:cljs -meta, :clj meta) [this]
@@ -334,8 +337,8 @@
 ;; Lifecycle callbacks registration
 
 (defn on-clean-up [callback]
-  (when-some [^ReactiveNode current-observer (get-current-observer)]
-    (-set-on-clean-up-callback current-observer callback)))
+  (when-some [^IRunObserver current-observer (get-current-observer)]
+    (add-clean-up-callback current-observer callback)))
 
 ;; ----------------------------------------------
 ;; Factories for commonly used reactive nodes
