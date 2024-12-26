@@ -98,12 +98,12 @@ This is achieved by having 2 distinct phases:
 ### Data phase, stale flagging propagation
 
 A signal can be modified similarly to a `clojure.core/atom` via `reset!` or `swap!`.
-When it happens, its subscribers are notified of a change.
+When it happens, its signal watchers are notified of a change.
 
 Each node has a `status` which can be either `:up-to-date`, `:stale` for sure, or `:maybe-stale`.
 When notified, if his status was `:up-to-date`, it is changed to either `:stale` or `:maybe-stale`.
-When a node becomes stale, it notifies its subscribers
-... and so on recursively, until there are no subscribers left to notify.
+When a node becomes stale, it notifies its signal watchers
+... and so on recursively, until there are no signal watchers left to notify.
 
 The stale effect nodes are added to a set to remember them in the next phase.
 
@@ -246,14 +246,14 @@ Disposing a node:
 - unlists it from the `sr/stale-effectful-nodes` set,
 - unregisters it from the node priority data structure.
 
-By default, the nodes will be disposed once their subscriber count reaches zero.
-If needed, this behavior can be avoided by using the `:dispose-on-zero-subscribers` option.
+By default, the nodes will be disposed once their signal watcher count reaches zero.
+If needed, this behavior can be avoided by using the `:dispose-on-zero-signal-watchers` option.
 
 For example:
 ```clojure
 (sr/create-derived 
  (fn [] ,,,)
- {:dispose-on-zero-subscribers false})
+ {:dispose-on-zero-signal-watchers false})
 ```
 
 ## Unit testing

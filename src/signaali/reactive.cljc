@@ -8,12 +8,17 @@
 ;; ----------------------------------------------
 ;; Protocols
 
+(defprotocol ISignalWatcher
+  (notify-signal-watcher [this is-for-sure signal-source]))
+
+(defprotocol ISignalSource
+  (notify-signal-watchers [this is-for-sure])
+  (add-signal-watcher [this signal-watcher])
+  (remove-signal-watcher [this signal-watcher]))
+
 (defprotocol IReactiveNode
-  (-add-source [this source])
-  (-remove-source [this source])
-  (-add-subscriber [this subscriber])
-  (-remove-subscriber [this subscriber])
-  (-notify-as-a-subscriber [this is-for-sure source])
+  (-add-signal-source [this signal-source])
+  (-remove-signal-source [this signal-source])
   (-run [this])
   (-set-on-clean-up-callback [this callback])
 
@@ -27,8 +32,7 @@
   (-get-has-side-effect [this])
   (-get-higher-priority-nodes [this])
   (-set-value! [this new-value])
-  (-notify-subscribers [this is-for-sure])
-  (-unsubscribe-from-all-sources [this])
+  (-unsubscribe-from-all-signal-sources [this])
   (-run-on-clean-up-callback [this]))
 
 ;; ----------------------------------------------
@@ -76,12 +80,12 @@
                                 run-fn
                                 propagation-filter-fn
                                 ^boolean has-side-effect
-                                ^boolean dispose-on-zero-subscribers
+                                ^boolean dispose-on-zero-signal-watchers
                                 ^:mutable status ;; possible values are :unset, :maybe-stale, :stale, :up-to-date
                                 ^:mutable last-run-propagated-value
-                                ^:mutable maybe-sources
-                                ^:mutable sources
-                                ^:mutable subscribers
+                                ^:mutable maybe-signal-sources
+                                ^:mutable signal-sources
+                                ^:mutable signal-watchers
                                 ^:mutable on-clean-up-callback
                                 ^:mutable on-dispose-callback
                                 ^:mutable higher-priority-nodes
@@ -90,12 +94,12 @@
                                run-fn
                                propagation-filter-fn
                                ^boolean has-side-effect
-                               ^boolean dispose-on-zero-subscribers
+                               ^boolean dispose-on-zero-signal-watchers
                                ^:volatile-mutable status ;; possible values are :unset, :maybe-stale, :stale, :up-to-date
                                ^:volatile-mutable last-run-propagated-value
-                               ^:volatile-mutable maybe-sources
-                               ^:volatile-mutable sources
-                               ^:volatile-mutable subscribers
+                               ^:volatile-mutable maybe-signal-sources
+                               ^:volatile-mutable signal-sources
+                               ^:volatile-mutable signal-watchers
                                ^:volatile-mutable on-clean-up-callback
                                ^:volatile-mutable on-dispose-callback
                                ^:volatile-mutable higher-priority-nodes
@@ -115,7 +119,7 @@
                (when (or (nil? propagation-filter-fn)
                          (propagation-filter-fn value new-value))
                  (set! value new-value)
-                 (-notify-subscribers this true)))
+                 (notify-signal-watchers this true)))
              ,]
 
       :clj [IAtom
@@ -136,78 +140,84 @@
               (when (or (nil? propagation-filter-fn)
                         (propagation-filter-fn value new-value))
                 (-set-value! this new-value)
-                (-notify-subscribers this true)))
+                (notify-signal-watchers this true)))
             ,])
 
   IDeref
   (#?(:cljs -deref, :clj deref) [this]
     (when-some [^ReactiveNode current-observer (get-current-observer)]
-      (-add-subscriber this current-observer)
-      (-add-source current-observer this))
+      (add-signal-watcher this current-observer)
+      (-add-signal-source current-observer this))
     (-run this)
     value)
 
-  IReactiveNode
-  (-add-source [this source]
-    (mut-set/conj! sources source))
-
-  (-remove-source [this source]
-    (mut-set/disj! sources source))
-
-  (-add-subscriber [this subscriber]
-    (mut-set/conj! subscribers subscriber))
-
-  (-remove-subscriber [this subscriber]
-    (mut-set/disj! subscribers subscriber)
-    (when (and dispose-on-zero-subscribers
-               (zero? (mut-set/count subscribers)))
-      (dispose this)))
-
-  (-notify-as-a-subscriber [this is-for-sure source]
+  ISignalWatcher
+  (notify-signal-watcher [this is-for-sure signal-source]
     (case status
       (:unset :up-to-date)
       (do
         (when-not is-for-sure
-          (mut-set/conj! maybe-sources source))
+          (mut-set/conj! maybe-signal-sources signal-source))
         (set! status (if is-for-sure :stale :maybe-stale))
         (notify-lifecycle-event this status)
         (when has-side-effect
           (enlist-stale-effectful-node this))
-        (-notify-subscribers this (and is-for-sure (nil? propagation-filter-fn))))
+        (notify-signal-watchers this (and is-for-sure (nil? propagation-filter-fn))))
 
       :maybe-stale
       (do
         (when-not is-for-sure
-          (mut-set/conj! maybe-sources source))
+          (mut-set/conj! maybe-signal-sources signal-source))
         (when is-for-sure
           (set! status :stale)
           (notify-lifecycle-event this status)
-          (-notify-subscribers this true)))
+          (notify-signal-watchers this true)))
 
       nil))
+
+  ISignalSource
+  (notify-signal-watchers [this is-for-sure]
+    (doseq [^ReactiveNode signal-watcher signal-watchers]
+      (notify-signal-watcher signal-watcher is-for-sure this)))
+
+  (add-signal-watcher [this signal-watcher]
+    (mut-set/conj! signal-watchers signal-watcher))
+
+  (remove-signal-watcher [this signal-watcher]
+    (mut-set/disj! signal-watchers signal-watcher)
+    (when (and dispose-on-zero-signal-watchers
+               (zero? (mut-set/count signal-watchers)))
+      (dispose this)))
+
+  IReactiveNode
+  (-add-signal-source [this signal-source]
+    (mut-set/conj! signal-sources signal-source))
+
+  (-remove-signal-source [this signal-source]
+    (mut-set/disj! signal-sources signal-source))
 
   (-run [this]
     (when (some? run-fn)
       (when (= status :maybe-stale)
         ;; Decide if we should transition to :up-to-date or to :stale
-        (loop [maybe-sources (seq maybe-sources)]
-          (if (nil? maybe-sources)
+        (loop [maybe-signal-sources (seq maybe-signal-sources)]
+          (if (nil? maybe-signal-sources)
             (do
               (set! status :up-to-date)
               (set! last-run-propagated-value false))
-            (let [^ReactiveNode maybe-source (first maybe-sources)]
-              (-run maybe-source)
-              (if (.-last-run-propagated-value maybe-source)
+            (let [^ReactiveNode maybe-signal-source (first maybe-signal-sources)]
+              (-run maybe-signal-source)
+              (if (.-last-run-propagated-value maybe-signal-source)
                 (set! status :stale)
-                (recur (next maybe-sources))))))
-        (mut-set/clear! maybe-sources))
+                (recur (next maybe-signal-sources))))))
+        (mut-set/clear! maybe-signal-sources))
 
       (when (or (= status :unset)
                 (= status :stale))
         ;; Clean up the node.
         (-run-on-clean-up-callback this)
-        (let [old-sources sources]
-          (set! sources (mut-set/make-mutable-object-set))
+        (let [old-signal-sources signal-sources]
+          (set! signal-sources (mut-set/make-mutable-object-set))
 
           ;; Run the node.
           (notify-lifecycle-event this :run)
@@ -221,10 +231,10 @@
           (set! status :up-to-date)
           (notify-lifecycle-event this status)
 
-          ;; Unsubscribe from the old sources which are no longer used.
-          (doseq [^ReactiveNode old-source old-sources]
-            (when-not (mut-set/contains? sources old-source)
-              (-remove-subscriber old-source this)))))))
+          ;; Unsubscribe from the old signal sources which are no longer used.
+          (doseq [^ReactiveNode old-signal-source old-signal-sources]
+            (when-not (mut-set/contains? signal-sources old-signal-source)
+              (remove-signal-watcher old-signal-source this)))))))
 
   (-set-on-clean-up-callback [this callback]
     (set! on-clean-up-callback callback))
@@ -238,7 +248,7 @@
   (dispose [this]
     (-run-on-clean-up-callback this)
     (notify-lifecycle-event this :dispose)
-    (-unsubscribe-from-all-sources this)
+    (-unsubscribe-from-all-signal-sources this)
     (unlist-stale-effectful-node this)
     (set! status :unset)
     (mut-set/clear! higher-priority-nodes)
@@ -251,14 +261,10 @@
   (-get-higher-priority-nodes [this] higher-priority-nodes)
   (-set-value! [this new-value] (set! value new-value))
 
-  (-notify-subscribers [this is-for-sure]
-    (doseq [^ReactiveNode subscriber subscribers]
-      (-notify-as-a-subscriber subscriber is-for-sure this)))
-
-  (-unsubscribe-from-all-sources [this]
-    (doseq [^ReactiveNode source sources]
-      (-remove-subscriber source this))
-    (mut-set/clear! sources))
+  (-unsubscribe-from-all-signal-sources [this]
+    (doseq [^ReactiveNode signal-source signal-sources]
+      (remove-signal-watcher signal-source this))
+    (mut-set/clear! signal-sources))
 
   (-run-on-clean-up-callback [this]
     (when (some? on-clean-up-callback)
@@ -274,10 +280,10 @@
 
 (defn make-reactive-node [{:keys [value
                                   run-fn
-                                  sources
+                                  signal-sources
                                   propagation-filter-fn
                                   has-side-effect
-                                  dispose-on-zero-subscribers
+                                  dispose-on-zero-signal-watchers
                                   on-dispose-callback
                                   metadata]
                            :as options}]
@@ -285,20 +291,20 @@
                                      run-fn
                                      propagation-filter-fn
                                      (boolean has-side-effect)
-                                     (boolean dispose-on-zero-subscribers)
+                                     (boolean dispose-on-zero-signal-watchers)
                                      (if (contains? options :value) :up-to-date :unset) ;; status
                                      false                             ;; last-run-propagated-value
-                                     (mut-set/make-mutable-object-set) ;; maybe-sources
-                                     (mut-set/make-mutable-object-set) ;; sources
-                                     (mut-set/make-mutable-object-set) ;; subscribers
+                                     (mut-set/make-mutable-object-set) ;; maybe-signal-sources
+                                     (mut-set/make-mutable-object-set) ;; signal-sources
+                                     (mut-set/make-mutable-object-set) ;; signal-watchers
                                      nil                               ;; on-clean-up-callback
                                      on-dispose-callback
                                      (mut-set/make-mutable-object-set) ;; higher-priority-nodes
                                      metadata
                                      ,)]
-    (doseq [source sources]
-      (-add-source reactive-node source)
-      (-add-subscriber source reactive-node))
+    (doseq [signal-source signal-sources]
+      (-add-signal-source reactive-node signal-source)
+      (add-signal-watcher signal-source reactive-node))
     (notify-lifecycle-event reactive-node :create)
     reactive-node))
 
@@ -340,7 +346,7 @@
    (create-signal value nil))
   ([value options]
    (make-reactive-node (into {:value value
-                              :dispose-on-zero-subscribers true}
+                              :dispose-on-zero-signal-watchers true}
                              options))))
 
 (defn create-derived
@@ -348,7 +354,7 @@
    (create-derived run-fn nil))
   ([run-fn options]
    (make-reactive-node (into {:run-fn run-fn
-                              :dispose-on-zero-subscribers true}
+                              :dispose-on-zero-signal-watchers true}
                              options))))
 
 (defn- not-identical? [x y]
@@ -360,7 +366,7 @@
   ([value options]
    (make-reactive-node (into {:value value
                               :propagation-filter-fn not-identical?
-                              :dispose-on-zero-subscribers true}
+                              :dispose-on-zero-signal-watchers true}
                              options))))
 
 (defn create-memo
@@ -369,7 +375,7 @@
   ([run-fn options]
    (make-reactive-node (into {:run-fn run-fn
                               :propagation-filter-fn not-identical?
-                              :dispose-on-zero-subscribers true}
+                              :dispose-on-zero-signal-watchers true}
                              options))))
 
 (defn create-effect
@@ -377,8 +383,7 @@
    (create-effect run-fn nil))
   ([run-fn options]
    (make-reactive-node (into {:run-fn run-fn
-                              :has-side-effect true
-                              :dispose-on-zero-subscribers false}
+                              :has-side-effect true}
                              options))))
 
 ;; ----------------------------------------------

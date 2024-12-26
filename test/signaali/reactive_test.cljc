@@ -272,21 +272,21 @@
 
       ,))
 
-  (testing "manually adding sources when creating a reactive node"
+  (testing "manually adding signal sources when creating a reactive node"
     (let [log (atom [])
           a (sr/create-signal 2)
           b (sr/create-memo (fn []
                               (let [b-value (+ @a @a)]
                                 (swap! log conj [:b b-value])
                                 b-value))
-                            {:sources [a]})
+                            {:signal-sources [a]})
           c (sr/create-effect (fn []
                                 (let [c-value @b]
                                   (swap! log conj [:c+ c-value])
                                   (sr/on-clean-up (fn []
                                                     (swap! log conj [:c- c-value])))
                                   c-value))
-                              {:sources [b]})]
+                              {:signal-sources [b]})]
       (is (= [] @log))
       (reset! a 3)
       (is (= [] @log))
