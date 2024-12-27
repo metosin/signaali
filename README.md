@@ -14,13 +14,17 @@
 
 > Naali: Finnish word for the [arctic fox](https://en.wikipedia.org/wiki/Arctic_fox).
 
+> Sig: The name of an arctic fox.
+
+> Signaali: Finnish word for signal.
+
 This library contains a flexible CLJC implementation of signals, which are used
 for building **reactive systems**.
 The author is using it for building a web framework, but it could also be used for many other types
 of applications.
 You can read more about signals [in this article](https://dev.to/milomg/super-charging-fine-grained-reactive-performance-47ph).
 
-With Signaali, you can dynamically create and maintain a directed aclyclic graph
+With Signaali, you can dynamically create and maintain a directed acyclic graph
 where the nodes are either:
 - representing an input data or signal, e.g. `(create-signal value)`,
 - representing a derived data, e.g. `(create-derived run-fn)`,
@@ -33,6 +37,10 @@ where the nodes are either:
 [![cljdoc badge](https://cljdoc.org/badge/fi.metosin/signaali)](https://cljdoc.org/d/fi.metosin/signaali)
 
 Signaali is currently [experimental](https://github.com/topics/metosin-experimental).
+It works and has no known bugs (if you find some, please file an issue) but we might
+change its API or namespaces to make it reach maturity.
+
+If your use case is not covered by Signaali, let's have a talk on Slack and see if we can help.
 
 ## Usage
 
