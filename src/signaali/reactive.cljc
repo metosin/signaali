@@ -24,7 +24,7 @@
 ;; Public API
 (defprotocol IReactiveNode
   (run-after [this higher-priority-node])
-  (set-on-dispose-callback [this callback])
+  (add-on-dispose-callback [this callback])
   (dispose [this]))
 
 (defprotocol IReactiveNodeInternals
@@ -87,7 +87,7 @@
                                 ^:mutable signal-sources
                                 ^:mutable signal-watchers
                                 ^:mutable clean-up-callbacks
-                                ^:mutable on-dispose-callback
+                                ^:mutable dispose-callbacks
                                 ^:mutable higher-priority-nodes
                                 metadata]
                          :clj [^:volatile-mutable value
@@ -101,7 +101,7 @@
                                ^:volatile-mutable signal-sources
                                ^:volatile-mutable signal-watchers
                                ^:volatile-mutable clean-up-callbacks
-                               ^:volatile-mutable on-dispose-callback
+                               ^:volatile-mutable dispose-callbacks
                                ^:volatile-mutable higher-priority-nodes
                                metadata])
   #?@(:cljs [ISwap
@@ -244,8 +244,10 @@
   (run-after [this higher-priority-node]
     (mut-set/conj! higher-priority-nodes higher-priority-node))
 
-  (set-on-dispose-callback [this callback]
-    (set! on-dispose-callback callback))
+  (add-on-dispose-callback [this callback]
+    (when (nil? dispose-callbacks)
+      (set! dispose-callbacks (mut-stack/make-mutable-object-stack)))
+    (mut-stack/conj! dispose-callbacks callback))
 
   (dispose [this]
     (-run-on-clean-up-callbacks this)
@@ -254,8 +256,12 @@
     (unlist-stale-effectful-node this)
     (set! status :unset)
     (mut-set/clear! higher-priority-nodes)
-    (when (some? on-dispose-callback)
-      (on-dispose-callback this)))
+
+    (when (some? dispose-callbacks)
+      (let [callbacks dispose-callbacks]
+        (set! dispose-callbacks nil)
+        (doseq [dispose-callback callbacks]
+          (dispose-callback this)))))
 
   IReactiveNodeInternals
   (-get-propagation-filter-fn [this] propagation-filter-fn)
@@ -271,10 +277,10 @@
   (-run-on-clean-up-callbacks [this]
     (notify-lifecycle-event this :clean-up)
     (when (some? clean-up-callbacks)
-      ;; TODO: improve this loop
-      (doseq [clean-up-callback (reverse clean-up-callbacks)]
-        (clean-up-callback))
-      (set! clean-up-callbacks nil)))
+      (let [callbacks clean-up-callbacks]
+        (set! clean-up-callbacks nil)
+        (doseq [clean-up-callback (reverse callbacks)]
+          (clean-up-callback)))))
 
   IMeta
   (#?(:cljs -meta, :clj meta) [this]
