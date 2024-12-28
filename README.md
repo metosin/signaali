@@ -1,6 +1,8 @@
 # Signaali
 
 - [Project status](#project-status)
+- [Intro](#intro)
+- [Rationale](#rationale)
 - [Usage](#usage)
 - [How it works](#how-it-works)
   - [Data phase, stale flagging propagation](#data-phase-stale-flagging-propagation)
@@ -18,10 +20,20 @@
 
 > Signaali: Finnish word for signal.
 
-This library contains a flexible CLJC implementation of signals, which are used
-for building **reactive systems**.
-The author is using it for building a web framework, but it could also be used for many other types
-of applications.
+## Project status
+
+[![Clojars Project](https://img.shields.io/clojars/v/fi.metosin/signaali.svg)](https://clojars.org/fi.metosin/signaali)
+[![Slack](https://img.shields.io/badge/slack-signaali-orange.svg?logo=slack)](https://clojurians.slack.com/app_redirect?channel=signaali)
+[![cljdoc badge](https://cljdoc.org/badge/fi.metosin/signaali)](https://cljdoc.org/d/fi.metosin/signaali)
+
+Signaali is currently [experimental](https://github.com/topics/metosin-experimental).
+It works and currently has no known bugs (if you find some, please file an issue),
+but we might change its API or namespaces to make it reach maturity.
+
+## Intro
+
+This library contains a CLJC implementation of signals, which are used for building **reactive systems**.
+The author is using it for building a web framework, but it could also be used for many other types of applications.
 You can read more about signals [in this article](https://dev.to/milomg/super-charging-fine-grained-reactive-performance-47ph).
 
 With Signaali, you can dynamically create and maintain a directed acyclic graph
@@ -30,15 +42,19 @@ where the nodes are either:
 - representing a derived data, e.g. `(create-derived run-fn)`,
 - representing a side effect to be executed, e.g. `(create-effect run-fn)`.
 
-## Project status
+## Rationale
 
-[![Clojars Project](https://img.shields.io/clojars/v/fi.metosin/signaali.svg)](https://clojars.org/fi.metosin/signaali)
-[![Slack](https://img.shields.io/badge/slack-signaali-orange.svg?logo=slack)](https://clojurians.slack.com/app_redirect?channel=signaali)
-[![cljdoc badge](https://cljdoc.org/badge/fi.metosin/signaali)](https://cljdoc.org/d/fi.metosin/signaali)
+The code base was originally developed for an experimental front-end rendering library which needed a reactive system:
+- with strictly no glitches,
+- simple to reason about,
+- with a simple and small codebase.
 
-Signaali is currently [experimental](https://github.com/topics/metosin-experimental).
-It works and has no known bugs (if you find some, please file an issue) but we might
-change its API or namespaces to make it reach maturity.
+A few similar libraries existed already, but none satisfied the above criteria, so this library was created.
+
+The code doesn't try to be "the most performant", as in many cases it is performant enough.
+Instead, a higher priority was placed on the developer convenience and simplicity.
+If performance becomes a real need (e.g. better use of the memory and CPU), this library should be forked and tweaked - maybe some features
+won't be needed in your specific use case.
 
 If your use case is not covered by Signaali, let's have a talk on Slack and see if we can help.
 
@@ -278,9 +294,10 @@ npm install
 - [Reagent Atom](https://github.com/reagent-project/reagent/blob/master/src/reagent/ratom.cljs), CLJS only.
 - [Signals](https://github.com/kunstmusik/signals), CLJ only.
 - [Flex](https://github.com/lilactown/flex), CLJC.
+- [Matrix](https://github.com/kennytilton/matrix), CLJC.
 
 Quite different but on the same topic:
-- [Missionary](https://github.com/leonoel/missionary) 
+- [Missionary](https://github.com/leonoel/missionary)
 
 Please make a PR if you think that a library is missing from the list.
 
