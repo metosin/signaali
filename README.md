@@ -1,19 +1,5 @@
 # Signaali
 
-- [Project status](#project-status)
-- [Intro](#intro)
-- [Rationale](#rationale)
-- [Usage](#usage)
-- [How it works](#how-it-works)
-  - [Data phase, stale flagging propagation](#data-phase-stale-flagging-propagation)
-  - [Effect phase, pulling the new values & changing the world](#effect-phase-pulling-the-new-values--changing-the-world)
-- [State and memo nodes](#state-and-memo-nodes)
-- [Effect nodes](#effect-nodes)
-- [Execution ordering amongst the effects](#execution-ordering-amongst-the-effects)
-- [Disposing the nodes](#disposing-the-nodes)
-- [Unit testing](#unit-testing)
-- [License](#license)
-
 > Naali: Finnish word for the [arctic fox](https://en.wikipedia.org/wiki/Arctic_fox).
 
 > Sig: The name of an arctic fox.
@@ -29,6 +15,19 @@
 Signaali is currently [experimental](https://github.com/topics/metosin-experimental).
 It works and currently has no known bugs (if you find some, please file an issue),
 but we might change its API or namespaces to make it reach maturity.
+
+- [Intro](#intro)
+- [Rationale](#rationale)
+- [Usage](#usage)
+- [How it works](#how-it-works)
+  - [Data phase, stale flagging propagation](#data-phase-stale-flagging-propagation)
+  - [Effect phase, pulling the new values & changing the world](#effect-phase-pulling-the-new-values--changing-the-world)
+- [State and memo nodes](#state-and-memo-nodes)
+- [Effect nodes](#effect-nodes)
+- [Execution ordering amongst the effects](#execution-ordering-amongst-the-effects)
+- [Disposing the nodes](#disposing-the-nodes)
+- [Unit testing](#unit-testing)
+- [License](#license)
 
 ## Intro
 
