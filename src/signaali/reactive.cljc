@@ -10,53 +10,53 @@
 
 (defprotocol ISignalWatcher
   (notify-signal-watcher
+    [this is-for-sure signal-source]
     "Notifies a signal watcher that a signal source might have emitted a signal.
      The boolean is-for-sure will be false when the signal source will need to be run
      in order to know if it really propagated the signal.
-     It can happen if `propagation-filter-fn` is defined on it."
-    [this is-for-sure signal-source]))
+     It can happen if `propagation-filter-fn` is defined on it."))
 
 (defprotocol ISignalSource
   (notify-signal-watchers
+    [this is-for-sure]
     "Notifies signal watchers that a signal source might have emitted a signal.
      The boolean is-for-sure will be false when the signal source will need to be run
      in order to know if it really propagated the signal.
-     It can happen if `propagation-filter-fn` is defined on it."
-    [this is-for-sure])
+     It can happen if `propagation-filter-fn` is defined on it.")
   (add-signal-watcher
-    "Registers a signal watcher to this signal source."
-    [this signal-watcher])
+    [this signal-watcher]
+    "Registers a signal watcher to this signal source.")
   (remove-signal-watcher
-    "Unregisters a signal watcher from this signal source."
-    [this signal-watcher])
+    [this signal-watcher]
+    "Unregisters a signal watcher from this signal source.")
   (run-if-needed
+    [this]
     "Run this node if it needs to. It typically happens when the signal source has `run-fn` defined
-     and if its status is not `:up-to-date`."
-    [this]))
+     and if its status is not `:up-to-date`."))
 
 (defprotocol IRunObserver
   "A protocol for objects added to the context stack."
   (notify-deref-on-signal-source
-    "Notifies the current observer that a signal was deref'ed."
-    [this signal-source])
+    [this signal-source]
+    "Notifies the current observer that a signal was deref'ed.")
   (add-clean-up-callback
+    [this callback]
     "Notifies the current observer that a clean-up callback want to register on it.
-     Those callbacks will be called in reverse order when the node is cleaned up."
-    [this callback]))
+     Those callbacks will be called in reverse order when the node is cleaned up."))
 
 ;; Public API
 (defprotocol IReactiveNode
   (run-after
+    [this higher-priority-node]
     "Tells the system that this reactive node should run after another one,
-     if both have to run during the same update batch."
-    [this higher-priority-node])
+     if both have to run during the same update batch.")
   (add-on-dispose-callback
+    [this callback]
     "Registers a callback to be called when the reactive node is disposed.
-     Those callbacks will be called in the same order they were registered."
-    [this callback])
+     Those callbacks will be called in the same order they were registered.")
   (dispose
-    "Disposes this reactive node."
-    [this]))
+    [this]
+    "Disposes this reactive node."))
 
 (defprotocol IReactiveNodeInternals
   (-get-propagation-filter-fn [this])
