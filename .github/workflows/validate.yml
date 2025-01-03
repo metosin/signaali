@@ -1,0 +1,45 @@
+name: Run tests
+
+on: [push, pull_request]
+
+jobs:
+
+  validate:
+
+    strategy:
+      matrix:
+        # LTS and latest
+        jdk: [8, 11, 17, 21]
+
+    name: "Clojure (Java ${{ matrix.jdk }})"
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: "Setup Java ${{ matrix.jdk }}"
+        uses: actions/setup-java@v1.4.3
+        with:
+          java-version: ${{ matrix.jdk }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/hydrogen
+
+      - name: Setup Clojure
+        uses: DeLaGuardo/setup-clojure@master
+        with:
+          cli: latest
+
+      - name: Cache deps dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-clojure-${{ hashFiles('**/deps.edn') }}
+          restore-keys: |
+            ${{ runner.os }}-clojure
+
+      - run: npm ci
+
+      - run: ./bin/kaocha
