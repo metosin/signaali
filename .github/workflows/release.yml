@@ -1,0 +1,45 @@
+name: Release
+
+on:
+  release:
+    types:
+      - published # reacts to releases and pre-releases, but not their drafts
+
+jobs:
+
+  test-and-release:
+
+    name: Release
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Java 8
+        uses: actions/setup-java@v1.4.3
+        with:
+          java-version: 8
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/hydrogen
+
+      - name: Setup Clojure
+        uses: DeLaGuardo/setup-clojure@master
+        with:
+          cli: latest
+
+      - run: npm ci
+
+      - name: Run the CLJ and CLJS tests
+        run: ./bin/kaocha
+
+      - name: Build the jar and update pom.xml's version
+        run: clojure -X:jar
+
+      - name: Deploy the jar and pom files to Clojars
+        run: clojure -X:deploy
+        env:
+          CLOJARS_USERNAME: green-coder
+          CLOJARS_PASSWORD: "${{ secrets.CLOJARS_DEPLOY_TOKEN }}"

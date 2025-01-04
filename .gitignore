@@ -6,3 +6,4 @@ out/
 .cljs_node_repl/
 
 *.iml
+*.jar

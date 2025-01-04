@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <packaging>jar</packaging>
+  <groupId>fi.metosin</groupId>
+  <artifactId>signaali</artifactId>
+  <version>0.1.0</version>
+  <name>signaali</name>
+  <description>Small, portable and flexible implementation of signals</description>
+  <inceptionYear>2023</inceptionYear>
+  <licenses>
+    <license>
+      <name>EPL-2.0</name>
+      <url>https://opensource.org/license/EPL-2.0</url>
+    </license>
+  </licenses>
+  <scm>
+    <url>https://github.com/metosin/signaali</url>
+    <connection>scm:git:git://github.com/metosin/signaali.git</connection>
+    <developerConnection>scm:git:ssh://git@github.com/metosin/signaali.git</developerConnection>
+    <tag>main</tag>
+  </scm>
+  <dependencies>
+    <dependency>
+      <groupId>org.clojure</groupId>
+      <artifactId>clojure</artifactId>
+      <version>1.10.3</version>
+    </dependency>
+  </dependencies>
+  <build>
+    <sourceDirectory>src</sourceDirectory>
+  </build>
+  <repositories>
+    <repository>
+      <id>clojars</id>
+      <url>https://repo.clojars.org/</url>
+    </repository>
+  </repositories>
+</project>
