@@ -12,7 +12,7 @@
 [![Slack](https://img.shields.io/badge/slack-signaali-orange.svg?logo=slack)](https://clojurians.slack.com/app_redirect?channel=signaali)
 [![cljdoc badge](https://cljdoc.org/badge/fi.metosin/signaali)](https://cljdoc.org/d/fi.metosin/signaali)
 
-Signaali is currently [experimental](https://github.com/topics/metosin-experimental).
+Signaali is currently [experimental](https://github.com/metosin/open-source/blob/main/project-status.md#experimental).
 It works and currently has no known bugs (if you find some, please file an issue),
 but we might change its API or namespaces to make it reach maturity.
 

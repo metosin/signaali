@@ -14,6 +14,12 @@ We use [Break Versioning][breakver]. The version numbers follow a `<major>.<mino
 
 Signaali is currently [experimental](https://github.com/topics/metosin-experimental).
 
+## Unreleased
+
+### Fixed
+
+- `reset!` and `swap!` on a ReactiveNode returns a value similar to when applied to an atom.
+
 ## 0.1.0
 
 First release! 🎉

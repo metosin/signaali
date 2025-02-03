@@ -150,7 +150,8 @@
                (when (or (nil? propagation-filter-fn)
                          (propagation-filter-fn value new-value))
                  (set! value new-value)
-                 (notify-signal-watchers this true)))
+                 (notify-signal-watchers this true))
+               value)
              ,]
 
       :clj [IAtom
@@ -170,8 +171,9 @@
             (reset [this ^Object new-value]
               (when (or (nil? propagation-filter-fn)
                         (propagation-filter-fn value new-value))
-                (-set-value! this new-value)
-                (notify-signal-watchers this true)))
+                (set! value new-value)
+                (notify-signal-watchers this true))
+              value)
             ,])
 
   IDeref

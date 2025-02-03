@@ -13,10 +13,12 @@
     (let [x (sr/create-signal 1)]
       (is (= 1 @x))
 
-      (reset! x 5)
+      (let [a (reset! x 5)]
+        (is (= a 5)))
       (is (= 5 @x))
 
-      (swap! x inc)
+      (let [a (swap! x inc)]
+        (is (= a 6)))
       (is (= 6 @x)))))
 
 (deftest signal-test
