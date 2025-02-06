@@ -327,7 +327,6 @@
                                   propagation-filter-fn
                                   has-side-effect
                                   dispose-on-zero-signal-watchers
-                                  on-dispose-callback
                                   metadata]
                            :as options}]
   (let [reactive-node (ReactiveNode. value
@@ -340,8 +339,8 @@
                                      (mut-set/make-mutable-object-set)                  ;; maybe-signal-sources
                                      (mut-set/make-mutable-object-set signal-sources)   ;; signal-sources
                                      (mut-set/make-mutable-object-set)                  ;; signal-watchers
-                                     nil                                                ;; on-clean-up-callback
-                                     on-dispose-callback
+                                     nil                                                ;; clean-up-callbacks
+                                     nil                                                ;; dispose-callbacks
                                      (mut-set/make-mutable-object-set)                  ;; higher-priority-nodes
                                      metadata
                                      ,)]
