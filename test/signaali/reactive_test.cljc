@@ -13,12 +13,12 @@
     (let [x (sr/create-signal 1)]
       (is (= 1 @x))
 
-      (let [a (reset! x 5)]
-        (is (= a 5)))
+      ;; reset! intentionally does not return a meaningful value
+      (reset! x 5)
       (is (= 5 @x))
 
-      (let [a (swap! x inc)]
-        (is (= a 6)))
+      ;; swap! intentionally does not return a meaningful value
+      (swap! x inc)
       (is (= 6 @x)))))
 
 (deftest signal-test

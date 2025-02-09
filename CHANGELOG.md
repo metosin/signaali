@@ -16,9 +16,6 @@ Signaali is currently [experimental](https://github.com/topics/metosin-experimen
 
 ## Unreleased
 
-### Fixed
-
-- `reset!` and `swap!` on a ReactiveNode returns a value similar to when applied to an atom.
 
 ## 0.1.0
 

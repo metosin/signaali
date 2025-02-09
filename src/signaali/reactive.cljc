@@ -151,7 +151,8 @@
                          (propagation-filter-fn value new-value))
                  (set! value new-value)
                  (notify-signal-watchers this true))
-               value)
+               ;; Value intentionally not returned.
+               #_value)
              ,]
 
       :clj [IAtom
@@ -163,17 +164,21 @@
               (.reset this (f value a b)))
             (swap [this ^IFn f ^Object a ^Object b ^ISeq xs]
               (.reset this (apply f value a b xs)))
-            (^boolean compareAndSet [this ^Object old-value, ^Object new-value]
-              (if (identical? value old-value)
-                (do (.reset this new-value)
-                    true)
-                false))
+
+            ;; Intentionally not included.
+            ;;(^boolean compareAndSet [this ^Object old-value, ^Object new-value]
+            ;;  (if (identical? value old-value)
+            ;;    (do (.reset this new-value)
+            ;;        true)
+            ;;    false))
+
             (reset [this ^Object new-value]
               (when (or (nil? propagation-filter-fn)
                         (propagation-filter-fn value new-value))
                 (set! value new-value)
                 (notify-signal-watchers this true))
-              value)
+              ;; Value intentionally not returned.
+              #_value)
             ,])
 
   IDeref
