@@ -16,6 +16,12 @@ Signaali is currently [experimental](https://github.com/topics/metosin-experimen
 
 ## Unreleased
 
+Changed:
+
+- Renamed in namespace `signaali.reactive`:
+  - `observer-stack`       -> `run-observer-stack`
+  - `with-observer`        -> `with-run-observer`
+  - `get-current-observer` -> `get-current-run-observer`
 
 ## 0.1.0
 

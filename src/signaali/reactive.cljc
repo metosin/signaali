@@ -38,10 +38,10 @@
   "A protocol for objects added to the context stack."
   (notify-deref-on-signal-source
     [this signal-source]
-    "Notifies the current observer that a signal was deref'ed.")
+    "Notifies the current run observer that a signal was deref'ed.")
   (add-clean-up-callback
     [this callback]
-    "Notifies the current observer that a clean-up callback want to register on it.
+    "Notifies the current run observer that a clean-up callback want to register on it.
      Those callbacks will be called in reverse order when the node is cleaned up."))
 
 ;; Public API
@@ -67,20 +67,20 @@
   (-run-on-clean-up-callbacks [this]))
 
 ;; ----------------------------------------------
-;; Observer stack
+;; IRunObserver stack
 
-(defonce ^:private observer-stack
+(defonce ^:private run-observer-stack
   (mut-stack/make-mutable-object-stack))
 
-(defn with-observer [observer body-fn]
+(defn with-run-observer [run-observer body-fn]
   (try
-    (mut-stack/conj! observer-stack observer)
+    (mut-stack/conj! run-observer-stack run-observer)
     (body-fn)
     (finally
-      (mut-stack/pop! observer-stack))))
+      (mut-stack/pop! run-observer-stack))))
 
-(defn get-current-observer []
-  (mut-stack/peek observer-stack))
+(defn get-current-run-observer []
+  (mut-stack/peek run-observer-stack))
 
 ;; ----------------------------------------------
 ;; Effects to re-run
@@ -183,8 +183,8 @@
 
   IDeref
   (#?(:cljs -deref, :clj deref) [this]
-    (when-some [^IRunObserver current-observer (get-current-observer)]
-      (notify-deref-on-signal-source current-observer this))
+    (when-some [^IRunObserver current-run-observer (get-current-run-observer)]
+      (notify-deref-on-signal-source current-run-observer this))
     (run-if-needed this)
     value)
 
@@ -251,7 +251,7 @@
 
           ;; Run the node.
           (notify-lifecycle-event this :run)
-          (let [new-value (with-observer this run-fn)]
+          (let [new-value (with-run-observer this run-fn)]
             (if (or (nil? propagation-filter-fn)
                     (propagation-filter-fn value new-value))
               (do
@@ -381,8 +381,8 @@
 ;; Lifecycle callbacks registration
 
 (defn on-clean-up [callback]
-  (when-some [^IRunObserver current-observer (get-current-observer)]
-    (add-clean-up-callback current-observer callback)))
+  (when-some [^IRunObserver current-run-observer (get-current-run-observer)]
+    (add-clean-up-callback current-run-observer callback)))
 
 ;; ----------------------------------------------
 ;; Factories for commonly used reactive nodes
