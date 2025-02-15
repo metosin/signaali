@@ -282,8 +282,9 @@
 
   IRunObserver
   (notify-deref-on-signal-source [this signal-source]
-    (add-signal-watcher signal-source this)
-    (mut-set/conj! signal-sources signal-source))
+    (when-not (mut-set/contains? signal-sources signal-source)
+      (add-signal-watcher signal-source this)
+      (mut-set/conj! signal-sources signal-source)))
 
   (add-clean-up-callback [this callback]
     (when (nil? clean-up-callbacks)
