@@ -297,4 +297,41 @@
 
       ,))
 
+  (testing "manually adding signal sources when creating a reactive node, no update of the sources on run."
+    (let [log (atom [])
+          a (sr/create-signal 1)
+          b (sr/create-signal 10)
+          c (sr/create-memo (fn []
+                              (let [c-value (+ @a @b)]
+                                (swap! log conj [:c c-value])
+                                c-value))
+                            {:signal-sources [a]
+                             :update-signal-sources-on-run false})
+          d (sr/create-effect (fn []
+                                (let [d-value @c]
+                                  (swap! log conj [:d+ d-value])
+                                  (sr/on-clean-up (fn []
+                                                    (swap! log conj [:d- d-value])))
+                                  d-value))
+                              {:signal-sources [c]})]
+      (is (= [] @log))
+      (reset! a 2)
+      (is (= [] @log))
+      (sr/re-run-stale-effectful-nodes)
+      (is (= [[:c 12] [:d+ 12]] @log))
+      (reset! b 20)
+      (sr/re-run-stale-effectful-nodes)
+      (is (= [[:c 12] [:d+ 12]] @log))
+      (sr/set-signal-sources c [b])
+      (sr/re-run-stale-effectful-nodes)
+      (is (= [[:c 12] [:d+ 12]] @log))
+      (reset! a 3)
+      (sr/re-run-stale-effectful-nodes)
+      (is (= [[:c 12] [:d+ 12]] @log))
+      (reset! b 20)
+      (sr/re-run-stale-effectful-nodes)
+      (is (= [[:c 12] [:d+ 12] [:c 23] [:d- 12] [:d+ 23]] @log))
+
+      ,))
+
   ,)

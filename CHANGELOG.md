@@ -16,7 +16,14 @@ Signaali is currently [experimental](https://github.com/topics/metosin-experimen
 
 ## Unreleased
 
-Changed:
+Added:
+
+- Added the boolean `update-signal-sources-on-run` property in `ReactiveNode` which allows
+  to disable the update of the signal sources when `run-fn` is executed.
+- Added `set-signal-sources` in `IReactiveNode` to change the signal sources of a reactive node.
+- Added related tests.
+
+Breakage:
 
 - Renamed in namespace `signaali.reactive`:
   - `observer-stack`       -> `run-observer-stack`

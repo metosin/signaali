@@ -46,6 +46,14 @@
 
 ;; Public API
 (defprotocol IReactiveNode
+  (set-signal-sources
+    [this new-signal-sources]
+    "Changes which signal sources this reactive node will react to.
+    `new-signal-sources` is a collection of ISignalSource.
+     This stop watching the signals which are no longer in the new collection,
+     and start watching the signals which are new in the new collection.
+     Note: Changing the signal sources does not execute the run-fn.
+     This function is useful only when update-signal-sources-on-run is set to false.")
   (run-after
     [this higher-priority-node]
     "Tells the system that this reactive node should run after another one,
@@ -112,6 +120,7 @@
                                 propagation-filter-fn
                                 ^boolean has-side-effect
                                 ^boolean dispose-on-zero-signal-watchers
+                                ^boolean update-signal-sources-on-run
                                 ^:mutable status ;; possible values are :unset, :maybe-stale, :stale, :up-to-date
                                 ^:mutable last-run-propagated-value
                                 ^:mutable maybe-signal-sources
@@ -126,6 +135,7 @@
                                propagation-filter-fn
                                ^boolean has-side-effect
                                ^boolean dispose-on-zero-signal-watchers
+                               ^boolean update-signal-sources-on-run
                                ^:volatile-mutable status ;; possible values are :unset, :maybe-stale, :stale, :up-to-date
                                ^:volatile-mutable last-run-propagated-value
                                ^:volatile-mutable maybe-signal-sources
@@ -259,11 +269,12 @@
         ;; Clean up the node.
         (-run-on-clean-up-callbacks this)
         (let [old-signal-sources signal-sources]
-          (set! signal-sources (mut-set/make-mutable-object-set))
+          (when update-signal-sources-on-run
+            (set! signal-sources (mut-set/make-mutable-object-set)))
 
           ;; Run the node.
           (notify-lifecycle-event this :run)
-          (let [new-value (with-run-observer this run-fn)]
+          (let [new-value (with-run-observer (when update-signal-sources-on-run this) run-fn)]
             (if (or (nil? propagation-filter-fn)
                     (propagation-filter-fn value new-value))
               (do
@@ -274,9 +285,10 @@
           (notify-lifecycle-event this status)
 
           ;; Unsubscribe from the old signal sources which are no longer used.
-          (doseq [^ISignalSource old-signal-source old-signal-sources]
-            (when-not (mut-set/contains? signal-sources old-signal-source)
-              (remove-signal-watcher old-signal-source this)))))
+          (when update-signal-sources-on-run
+            (doseq [^ISignalSource old-signal-source old-signal-sources]
+              (when-not (mut-set/contains? signal-sources old-signal-source)
+                (remove-signal-watcher old-signal-source this))))))
 
       last-run-propagated-value))
 
@@ -292,6 +304,16 @@
     (mut-stack/conj! clean-up-callbacks callback))
 
   IReactiveNode
+  (set-signal-sources [this new-signal-sources]
+    (let [new-signal-sources (set new-signal-sources)]
+      (doseq [signal-source signal-sources]
+        (when-not (contains? new-signal-sources signal-source)
+          (remove-signal-watcher signal-source this)))
+      (doseq [new-signal-source new-signal-sources]
+        (when-not (mut-set/contains? signal-sources new-signal-source)
+          (add-signal-watcher new-signal-source this))))
+    (set! signal-sources (mut-set/make-mutable-object-set new-signal-sources)))
+
   (run-after [this higher-priority-node]
     (mut-set/conj! higher-priority-nodes higher-priority-node))
 
@@ -341,17 +363,25 @@
 
 (defn make-reactive-node [{:keys [value
                                   run-fn
-                                  signal-sources
                                   propagation-filter-fn
                                   has-side-effect
                                   dispose-on-zero-signal-watchers
+                                  update-signal-sources-on-run
+                                  signal-sources
                                   metadata]
+                           :or {has-side-effect                 false
+                                dispose-on-zero-signal-watchers false
+                                update-signal-sources-on-run    true}
                            :as options}]
+  {:pre [(boolean? has-side-effect)
+         (boolean? dispose-on-zero-signal-watchers)
+         (boolean? update-signal-sources-on-run)]}
   (let [reactive-node (ReactiveNode. value
                                      run-fn
                                      propagation-filter-fn                              ;; accepts 2 params in order: value, new-value
-                                     (boolean has-side-effect)
-                                     (boolean dispose-on-zero-signal-watchers)
+                                     has-side-effect
+                                     dispose-on-zero-signal-watchers
+                                     update-signal-sources-on-run
                                      (if (contains? options :value) :up-to-date :unset) ;; status
                                      false                                              ;; last-run-propagated-value
                                      (mut-set/make-mutable-object-set)                  ;; maybe-signal-sources
