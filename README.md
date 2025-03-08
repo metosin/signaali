@@ -27,6 +27,8 @@ but we might change its API or namespaces to make it reach maturity.
 - [Execution ordering amongst the effects](#execution-ordering-amongst-the-effects)
 - [Disposing the nodes](#disposing-the-nodes)
 - [Unit testing](#unit-testing)
+- [Similar Clojure libraries](#similar-clojure-libraries)
+- [Projects using Signaali](#projects-using-signaali)
 - [License](#license)
 
 ## Intro
@@ -299,6 +301,18 @@ Quite different but on the same topic:
 - [Missionary](https://github.com/leonoel/missionary)
 
 Please make a PR if you think that a library is missing from the list.
+
+## Projects using Signaali
+
+Libraries:
+
+- [Siagent](https://github.com/metosin/siagent): A rewrite of a subset of Reagent's features, using Signaali for the reactivity.
+- [Si-frame](https://github.com/metosin/si-frame): A fork of Re-frame, with the reactivity provided by Signaali via Siagent.
+- [Vrac](https://github.com/metosin/vrac): A web framework in Clojure, for Clojurists. This is where Signaali was born.
+
+Products:
+
+*coming soon*
 
 ## License
 
