@@ -43,6 +43,8 @@ where the nodes are either:
 - representing a derived data, e.g. `(create-derived run-fn)`,
 - representing a side effect to be executed, e.g. `(create-effect run-fn)`.
 
+[![Youtube Video](https://github.com/user-attachments/assets/dda60a98-a4ac-4344-8a01-d75594235eaa)](https://www.youtube.com/watch?v=MYE99r00e7M)
+
 ## Rationale
 
 The code base was originally developed for an experimental front-end rendering library which needed a reactive system:
@@ -296,6 +298,7 @@ npm install
 - [Signals](https://github.com/kunstmusik/signals), CLJ only.
 - [Flex](https://github.com/lilactown/flex), CLJC.
 - [Matrix](https://github.com/kennytilton/matrix), CLJC.
+- [Javelin](https://github.com/hoplon/javelin), CLJC.
 
 Quite different but on the same topic:
 - [Missionary](https://github.com/leonoel/missionary)
@@ -308,7 +311,7 @@ Libraries:
 
 - [Siagent](https://github.com/metosin/siagent): A rewrite of a subset of Reagent's features, using Signaali for the reactivity.
 - [Si-frame](https://github.com/metosin/si-frame): A fork of Re-frame, with the reactivity provided by Signaali via Siagent.
-- [Vrac](https://github.com/metosin/vrac): A web framework in Clojure, for Clojurists. This is where Signaali was born.
+- [Vrac](https://github.com/green-coder/vrac): A web framework in Clojure, for Clojurists. This is where Signaali was born.
 
 Products:
 

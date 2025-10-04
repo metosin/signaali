@@ -4,6 +4,7 @@ out/
 .cpcache/
 .nrepl-port
 .cljs_node_repl/
+.clj-kondo/
 
 *.iml
 *.jar
