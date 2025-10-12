@@ -1,0 +1,31 @@
+name: CljDoc
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+
+  check-cljdoc:
+
+    name: Check source code
+
+    timeout-minutes: 60
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Clojure
+        uses: DeLaGuardo/setup-clojure@master
+        with:
+          cli: latest
+
+      - name: Build the jar and update pom.xml's version
+        run: clojure -X:jar && mkdir target && mv *.jar target/
+
+      - name: CljDoc Check
+        uses: cljdoc/cljdoc-check-action@v0.0.3

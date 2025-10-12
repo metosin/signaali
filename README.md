@@ -29,6 +29,7 @@ but we might change its API or namespaces to make it reach maturity.
 - [Unit testing](#unit-testing)
 - [Similar Clojure libraries](#similar-clojure-libraries)
 - [Projects using Signaali](#projects-using-signaali)
+- [AI context](doc/ai-context.md)
 - [License](#license)
 
 ## Intro
@@ -305,7 +306,7 @@ Quite different but on the same topic:
 
 Please make a PR if you think that a library is missing from the list.
 
-## Projects using Signaali
+## Projects using Signaali so far
 
 Libraries:
 
@@ -313,9 +314,9 @@ Libraries:
 - [Si-frame](https://github.com/metosin/si-frame): A fork of Re-frame, with the reactivity provided by Signaali via Siagent.
 - [Vrac](https://github.com/green-coder/vrac): A web framework in Clojure, for Clojurists. This is where Signaali was born.
 
-Products:
+Applications:
 
-*coming soon*
+- A React native app for a customer (UIX + Si-frame)
 
 ## License
 

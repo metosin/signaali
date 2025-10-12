@@ -1,0 +1,3 @@
+{:cljdoc.doc/tree [["Readme"          {:file "README.md"}]
+                   ["Changes"         {:file "CHANGELOG.md"}]
+                   ["AI context"      {:file "doc/ai-context.md"}]]}
