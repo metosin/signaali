@@ -1,9 +1,7 @@
 # Signaali
 
 > Naali: Finnish word for the [arctic fox](https://en.wikipedia.org/wiki/Arctic_fox).
-
-> Sig: The name of an arctic fox.
-
+>
 > Signaali: Finnish word for signal.
 
 ## Project status
