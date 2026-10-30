@@ -298,3 +298,23 @@
       ,))
 
   ,)
+
+(deftest self-triggering-effect-test
+  (testing "an effect which updates its own signal source should be marked as stale after being run"
+    (let [a (sr/create-signal true)
+          b (sr/create-signal 0)
+          c (sr/create-effect (fn []
+                                (when-let [a-value @a]
+                                  (reset! a false)
+                                  (let [b-value @b]
+                                    (swap! b inc)))))]
+      (is (= :unset (sr/-get-status c)))
+      (is (true? @a))
+      (is (= 0 @b))
+      @c
+      (is (= :stale (sr/-get-status c)))
+      (is (false? @a))
+      (is (= 1 @b))
+
+      ,))
+  ,)
