@@ -59,6 +59,7 @@
     "Disposes this reactive node."))
 
 (defprotocol IReactiveNodeInternals
+  (-get-status [this])
   (-get-propagation-filter-fn [this])
   (-get-has-side-effect [this])
   (-get-higher-priority-nodes [this])
@@ -315,6 +316,7 @@
           (dispose-callback this)))))
 
   IReactiveNodeInternals
+  (-get-status [this] status)
   (-get-propagation-filter-fn [this] propagation-filter-fn)
   (-get-has-side-effect [this] has-side-effect)
   (-get-higher-priority-nodes [this] higher-priority-nodes)
