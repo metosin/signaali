@@ -343,6 +343,9 @@
 
   ,)
 
+(defn reactive-node? [x]
+  (instance? ReactiveNode x))
+
 (defn make-reactive-node [{:keys [value
                                   run-fn
                                   signal-sources
