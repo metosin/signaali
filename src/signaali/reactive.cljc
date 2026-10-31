@@ -192,7 +192,7 @@
   ISignalWatcher
   (notify-signal-watcher [this is-for-sure signal-source]
     (case status
-      (:unset :up-to-date)
+      (:unset :run :up-to-date)
       (do
         (when-not is-for-sure
           (mut-set/conj! maybe-signal-sources signal-source))
@@ -263,7 +263,8 @@
           (set! signal-sources (mut-set/make-mutable-object-set))
 
           ;; Run the node.
-          (notify-lifecycle-event this :run)
+          (set! status :run)
+          (notify-lifecycle-event this status)
           (let [new-value (with-run-observer this run-fn)]
             (if (or (nil? propagation-filter-fn)
                     (propagation-filter-fn value new-value))
@@ -271,8 +272,9 @@
                 (set! value new-value)
                 (set! last-run-propagated-value true))
               (set! last-run-propagated-value false)))
-          (set! status :up-to-date)
-          (notify-lifecycle-event this status)
+          (when (= status :run)
+            (set! status :up-to-date)
+            (notify-lifecycle-event this status))
 
           ;; Unsubscribe from the old signal sources which are no longer used.
           (doseq [^ISignalSource old-signal-source old-signal-sources]
@@ -372,7 +374,7 @@
 ;; ----------------------------------------------
 ;; Effectful nodes to re-run
 
-(def ^:private stale-effectful-nodes (mut-set/make-mutable-object-set))
+(def ^:private stale-effectful-nodes (mut-set/make-mutable-object-linked-set))
 
 (defn enlist-stale-effectful-node [^ReactiveNode node]
   (mut-set/conj! stale-effectful-nodes node))
@@ -386,11 +388,12 @@
                                (run! run-this-first (-get-higher-priority-nodes node)))
                              ;; We need to check again, in case this node was disposed by a higher-priority node.
                              (when (mut-set/contains? stale-effectful-nodes node)
-                               (run-if-needed node)
-                               (mut-set/disj! stale-effectful-nodes node)))]
-    (run! run-nodes-in-order #?(:cljs stale-effectful-nodes
-                                ;; TODO: use Iterator.remove() instead of cloning.
-                                :clj (.clone stale-effectful-nodes)))))
+                               (mut-set/disj! stale-effectful-nodes node)
+                               (run-if-needed node)))]
+    (loop []
+      (when-some [node (first stale-effectful-nodes)]
+        (run-nodes-in-order node)
+        (recur)))))
 
 ;; ----------------------------------------------
 ;; Lifecycle callbacks registration

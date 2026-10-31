@@ -317,4 +317,25 @@
       (is (= 1 @b))
 
       ,))
+
+  (testing "an effect which updates its own signal source is re-run during the same update"
+    (let [log (atom [])
+          a (sr/create-signal 0)
+          b (sr/create-effect (fn []
+                                (let [a-value @a]
+                                  (swap! log conj a-value)
+                                  (when (<= a-value 2)
+                                    (swap! a inc)))))]
+      (is (= [] @log))
+      (is (= :unset (sr/-get-status b)))
+
+      @b
+      (is (= [0] @log))
+      (is (= :stale (sr/-get-status b)))
+
+      (sr/re-run-stale-effectful-nodes)
+      (is (= [0 1 2 3] @log))
+      (is (= :up-to-date (sr/-get-status b)))
+
+      ,))
   ,)

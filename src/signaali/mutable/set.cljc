@@ -1,5 +1,5 @@
 (ns signaali.mutable.set
-  #?(:clj (:import [java.util HashSet]))
+  #?(:clj (:import [java.util Collection HashSet LinkedHashSet]))
   (:refer-clojure :exclude [conj! disj! contains? count]))
 
 (defn conj! [set item]
@@ -28,4 +28,12 @@
       :clj (HashSet.)))
   ([coll]
    #?(:cljs (js/Set. coll)
-      :clj (HashSet. (or coll [])))))
+      :clj (HashSet. ^Collection (or coll [])))))
+
+(defn make-mutable-object-linked-set
+  ([]
+   #?(:cljs (js/Set.)
+      :clj (LinkedHashSet.)))
+  ([coll]
+   #?(:cljs (js/Set. coll)
+      :clj (LinkedHashSet. ^Collection (or coll [])))))
