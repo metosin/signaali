@@ -16,6 +16,8 @@ Signaali is currently [experimental](https://github.com/topics/metosin-experimen
 
 ## Unreleased
 
+## 0.1.1
+
 Added:
 
 - Small utility function `reactive-node?`.
