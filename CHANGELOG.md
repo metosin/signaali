@@ -16,6 +16,14 @@ Signaali is currently [experimental](https://github.com/topics/metosin-experimen
 
 ## Unreleased
 
+IMPORTANT:
+  Do not use this release, it is deprecated.
+
+Added:
+
+- Small utility function `reactive-node?`.
+- Internal function to get the current status of a ReactiveNode, useful for debugging.
+
 Changed:
 
 - Renamed in namespace `signaali.reactive`:
