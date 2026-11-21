@@ -114,7 +114,6 @@
                                 ^boolean has-side-effect
                                 ^boolean dispose-on-zero-signal-watchers
                                 ^:mutable status ;; possible values are :unset, :maybe-stale, :stale, :up-to-date
-                                ^:mutable last-run-propagated-value
                                 ^:mutable maybe-signal-sources
                                 ^:mutable signal-sources
                                 ^:mutable signal-watchers
@@ -128,7 +127,6 @@
                                ^boolean has-side-effect
                                ^boolean dispose-on-zero-signal-watchers
                                ^:volatile-mutable status ;; possible values are :unset, :maybe-stale, :stale, :up-to-date
-                               ^:volatile-mutable last-run-propagated-value
                                ^:volatile-mutable maybe-signal-sources
                                ^:volatile-mutable signal-sources
                                ^:volatile-mutable signal-watchers
@@ -234,25 +232,12 @@
         ;; Decide if we should transition to :up-to-date or to :stale
         (loop [maybe-signal-sources (seq maybe-signal-sources)]
           (if (nil? maybe-signal-sources)
-            (do
-              (set! status :up-to-date)
-              (set! last-run-propagated-value false))
-            (let [^ISignalSource maybe-signal-source (first maybe-signal-sources)
-                  ;; Warning: there is a hidden assumption here, it's that this downstream signal
-                  ;; is run before the upstream signal is updated again.
-                  ;; This assumption is no longer valid if we choose to only run *some* effects
-                  ;; during the "pull" phase (phase #2).
-
-                  ;; In the general case, we want to know if the upstream value is the same version as the one it had
-                  ;; when we got notified by the upstream signal with is-for-sure set to false.
-                  ;; It implies that we have a version system. It would be good for debugging, but it adds complexity.
-
-                  ;; Possible alternative to keeping a version number: A signal notifies all its watchers when it transitions
-                  ;; from :maybe-stale to :up-to-date or :stale, and the watchers update their maybe-signal-sources accordingly.
-
-                  its-last-effective-run-propagated-value (run-if-needed maybe-signal-source)]
-              (if its-last-effective-run-propagated-value
-                (set! status :stale)
+            (set! status :up-to-date)
+            (let [^ISignalSource maybe-signal-source (first maybe-signal-sources)]
+              ;; If it updates to a new value, it notifies this node which becomes :stale.
+              (run-if-needed maybe-signal-source)
+              ;; Otherwise, we are still :maybe-stale and we continue to check the maybe-sources.
+              (when (= status :maybe-stale)
                 (recur (next maybe-signal-sources))))))
         (mut-set/clear! maybe-signal-sources))
 
@@ -265,22 +250,24 @@
 
           ;; Run the node.
           (notify-lifecycle-event this :run)
-          (let [new-value (with-run-observer this run-fn)]
-            (if (or (nil? propagation-filter-fn)
-                    (propagation-filter-fn value new-value))
-              (do
-                (set! value new-value)
-                (set! last-run-propagated-value true))
-              (set! last-run-propagated-value false)))
-          (set! status :up-to-date)
-          (notify-lifecycle-event this status)
+          (let [new-value (with-run-observer this run-fn)
+                new-value-replaces-old-value (or (nil? propagation-filter-fn)
+                                                 (propagation-filter-fn value new-value))]
+            (when new-value-replaces-old-value
+              (set! value new-value))
+            (set! status :up-to-date)
+            (notify-lifecycle-event this status)
 
-          ;; Unsubscribe from the old signal sources which are no longer used.
-          (doseq [^ISignalSource old-signal-source old-signal-sources]
-            (when-not (mut-set/contains? signal-sources old-signal-source)
-              (remove-signal-watcher old-signal-source this)))))
+            ;; Unsubscribe from the old signal sources which are no longer used.
+            (doseq [^ISignalSource old-signal-source old-signal-sources]
+              (when-not (mut-set/contains? signal-sources old-signal-source)
+                (remove-signal-watcher old-signal-source this)))
 
-      last-run-propagated-value))
+            (when (and new-value-replaces-old-value
+                       (some? propagation-filter-fn))
+              (doseq [signal-watcher signal-watchers]
+                (when (= (-get-status signal-watcher) :maybe-stale)
+                  (notify-signal-watcher signal-watcher true this)))))))))
 
   IRunObserver
   (notify-deref-on-signal-source [this signal-source]
@@ -359,7 +346,6 @@
                                      (boolean has-side-effect)
                                      (boolean dispose-on-zero-signal-watchers)
                                      (if (contains? options :value) :up-to-date :unset) ;; status
-                                     false                                              ;; last-run-propagated-value
                                      (mut-set/make-mutable-object-set)                  ;; maybe-signal-sources
                                      (mut-set/make-mutable-object-set signal-sources)   ;; signal-sources
                                      (mut-set/make-mutable-object-set)                  ;; signal-watchers
