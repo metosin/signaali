@@ -158,6 +158,35 @@
       (is (= 200 @z))
       (is (= [[:y 1]] @log)) ;; z was not marked as dirty, so it did not re-run
 
+      ,))
+
+  (testing "a maybe-stale memo which becomes stale should not mark its subscriptions as dirty for sure."
+    (let [log (atom [])
+          s1 (sr/create-signal 1)
+          s2 (sr/create-signal 1)
+          a (sr/create-memo (fn []
+                              (let [s1-value @s1]
+                                (swap! log conj [:a s1-value])
+                                s1-value)))
+          m (sr/create-memo (fn []
+                              (let [a-value @a
+                                    s2-value @s2]
+                                (swap! log conj [:m a-value s2-value])
+                                (pos? (+ a-value s2-value)))))
+          z (sr/create-derived (fn []
+                                 (let [m-value @m]
+                                   (swap! log conj [:z m-value])
+                                   (str m-value))))]
+
+      (is (= "true" @z))
+      (is (= [[:a 1] [:m 1 1] [:z true]] @log))
+
+      (reset! log [])
+      (reset! s1 2) ;; a becomes :stale, m and z become :maybe-stale
+      (reset! s2 1) ;; m is notified for sure while :maybe-stale, z should stay :maybe-stale
+      (is (= "true" @z))
+      (is (= [[:a 2] [:m 2 1]] @log)) ;; m's value didn't change, so z did not re-run
+
       ,)))
 
 (deftest effect-test

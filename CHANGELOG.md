@@ -16,6 +16,10 @@ Signaali is currently [experimental](https://github.com/topics/metosin-experimen
 
 ## Unreleased
 
+Fixed:
+- Reactivity bug: A maybe-stale memo which becomes stale no longer marks its watchers as stale for sure.
+  The bug meant that a few nodes would re-run when not strictly needed, not honoring the memo's propagation filter.
+
 ## 0.1.1
 
 IMPORTANT:

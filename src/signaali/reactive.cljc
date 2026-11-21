@@ -209,7 +209,8 @@
         (when is-for-sure
           (set! status :stale)
           (notify-lifecycle-event this status)
-          (notify-signal-watchers this true)))
+          (when (nil? propagation-filter-fn)
+            (notify-signal-watchers this true))))
 
       nil))
 
