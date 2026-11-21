@@ -327,3 +327,49 @@
       ,))
 
   ,)
+
+(deftest missed-change-repro
+  (testing "a maybe-stale memo sees a change its source propagated before a later no-op run"
+    (let [db (sr/create-state {:a 1 :b 1})
+          a (sr/create-memo (fn [] (:a @db)))
+          a10 (sr/create-memo (fn [] (* @a 10)))]
+      (is (= 10 @a10))
+      (swap! db assoc :a 2)
+      (is (= 2 @a))
+      (swap! db assoc :b 2)
+      (is (= 20 @a10)))))
+
+(deftest maybe-stale-push-test
+  (testing "a maybe-stale memo becomes stale when running its source propagates a new value"
+    (let [log (atom [])
+          db (sr/create-state {:a 1 :b 1})
+          a (sr/create-memo (fn [] (:a @db)))
+          a10 (sr/create-memo (fn []
+                                (let [a-value @a]
+                                  (swap! log conj [:a10 a-value])
+                                  (* a-value 10))))]
+      (is (= 10 @a10))
+      (is (= [[:a10 1]] @log))
+
+      ;; a re-runs but does not propagate, a10 does not re-run.
+      (swap! db assoc :b 2)
+      (is (= 10 @a10))
+      (is (= [[:a10 1]] @log))
+
+      ;; a re-runs while a10 is resolving its :maybe-stale status, and propagates.
+      (swap! db assoc :a 2)
+      (is (= 20 @a10))
+      (is (= [[:a10 1] [:a10 2]] @log))))
+
+  (testing "a node in its first run is not marked stale by a source it reads for the first time"
+    (let [stale-effectful-nodes @#'sr/stale-effectful-nodes
+          db (sr/create-state {:a 1})
+          a (sr/create-memo (fn [] (:a @db)))
+          _ (is (= 1 @a))
+          _ (swap! db assoc :a 2) ;; a is now :stale
+          e (sr/create-effect (fn [] @a))]
+      ;; e registers itself as a watcher of a, then a runs and propagates during e's first run.
+      (is (= 2 @e))
+      (is (= :up-to-date (sr/-get-status e)))
+      (is (not (contains? (set stale-effectful-nodes) e)))
+      (sr/dispose e))))
