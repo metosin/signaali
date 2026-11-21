@@ -4,7 +4,7 @@
   <packaging>jar</packaging>
   <groupId>fi.metosin</groupId>
   <artifactId>signaali</artifactId>
-  <version>0.1.0</version>
+  <version>0.1.1</version>
   <name>signaali</name>
   <description>Small, portable and flexible implementation of signals</description>
   <inceptionYear>2023</inceptionYear>
