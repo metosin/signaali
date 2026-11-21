@@ -21,6 +21,8 @@ Fixed:
   The bug meant that a few nodes would re-run when not strictly needed, not honoring the memo's propagation filter.
 - Reactivity bug: A maybe-stale node no longer misses a change propagated by its source when that source was run
   again before the node was run.
+- Reactivity bug: A node whose signal sources change during its own run (e.g. an effect writing into a signal it
+  already read) now stays stale after the run, instead of being marked as up-to-date. Stale effects are re-run accordingly.
 
 ## 0.1.1
 

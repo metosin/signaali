@@ -249,14 +249,15 @@
           (set! signal-sources (mut-set/make-mutable-object-set))
 
           ;; Run the node.
+          (set! status :up-to-date)
           (notify-lifecycle-event this :run)
           (let [new-value (with-run-observer this run-fn)
                 new-value-replaces-old-value (or (nil? propagation-filter-fn)
                                                  (propagation-filter-fn value new-value))]
             (when new-value-replaces-old-value
               (set! value new-value))
-            (set! status :up-to-date)
-            (notify-lifecycle-event this status)
+            (when (= status :up-to-date)
+              (notify-lifecycle-event this status))
 
             ;; Unsubscribe from the old signal sources which are no longer used.
             (doseq [^ISignalSource old-signal-source old-signal-sources]
@@ -376,8 +377,10 @@
                                (run! run-this-first (-get-higher-priority-nodes node)))
                              ;; We need to check again, in case this node was disposed by a higher-priority node.
                              (when (mut-set/contains? stale-effectful-nodes node)
-                               (run-if-needed node)
-                               (mut-set/disj! stale-effectful-nodes node)))]
+                               ;; Unlist the node before running it, so that
+                               ;; the node can enlist itself again during its run.
+                               (mut-set/disj! stale-effectful-nodes node)
+                               (run-if-needed node)))]
     (run! run-nodes-in-order #?(:cljs stale-effectful-nodes
                                 ;; TODO: use Iterator.remove() instead of cloning.
                                 :clj (.clone stale-effectful-nodes)))))
