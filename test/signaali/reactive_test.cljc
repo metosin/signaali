@@ -373,3 +373,52 @@
       (is (= :up-to-date (sr/-get-status e)))
       (is (not (contains? (set stale-effectful-nodes) e)))
       (sr/dispose e))))
+
+(deftest self-triggering-effect-test
+  (testing "an effect which updates its own signal source should be marked as stale after being run"
+    (let [a (sr/create-signal true)
+          b (sr/create-signal 0)
+          c (sr/create-effect (fn []
+                                (when-let [a-value @a]
+                                  (reset! a false)
+                                  (let [b-value @b]
+                                    (swap! b inc)))))]
+      (is (= :unset (sr/-get-status c)))
+      (is (true? @a))
+      (is (= 0 @b))
+      @c
+      (is (= :stale (sr/-get-status c)))
+      (is (false? @a))
+      (is (= 1 @b)),))
+
+  ,)
+
+(deftest re-run-stale-effectful-nodes-snapshot-test
+  (testing "a self-triggering effect is re-run at most once per call to re-run-stale-effectful-nodes"
+    (let [runs (atom 0)
+          s (sr/create-signal 0)
+          e (sr/create-effect (fn []
+                                (swap! runs inc)
+                                (let [s-value @s]
+                                  (when (< s-value 3)
+                                    (swap! s inc)))))]
+      @e
+      (is (= 1 @runs))
+      (is (= :stale (sr/-get-status e)))
+
+      (sr/re-run-stale-effectful-nodes)
+      (is (= 2 @runs))
+      (is (= :stale (sr/-get-status e)))
+
+      (sr/re-run-stale-effectful-nodes)
+      (is (= 3 @runs))
+      (is (= :stale (sr/-get-status e)))
+
+      ;; s is now 3, the effect no longer writes into it.
+      (sr/re-run-stale-effectful-nodes)
+      (is (= 4 @runs))
+      (is (= :up-to-date (sr/-get-status e)))
+
+      (sr/re-run-stale-effectful-nodes)
+      (is (= 4 @runs))
+      (sr/dispose e))))
