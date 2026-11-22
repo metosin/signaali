@@ -371,7 +371,11 @@
 (defn unlist-stale-effectful-node [^ReactiveNode node]
   (mut-set/disj! stale-effectful-nodes node))
 
-(defn re-run-stale-effectful-nodes []
+(defn re-run-stale-effectful-nodes
+  "Re-runs the effectful nodes which are stale at the time this function is called.
+   The nodes which become stale again during this call (e.g. an effect writing into one of its own signal sources)
+   are re-run on the next call, unless they are needed earlier as a higher-priority node of a node run in this call."
+  []
   (let [run-nodes-in-order (fn run-this-first [^ReactiveNode node]
                              (when (mut-set/contains? stale-effectful-nodes node)
                                (run! run-this-first (-get-higher-priority-nodes node)))
@@ -381,9 +385,8 @@
                                ;; the node can enlist itself again during its run.
                                (mut-set/disj! stale-effectful-nodes node)
                                (run-if-needed node)))]
-    (run! run-nodes-in-order #?(:cljs stale-effectful-nodes
-                                ;; TODO: use Iterator.remove() instead of cloning.
-                                :clj (.clone stale-effectful-nodes)))))
+    ;; Iterates on a snapshot, as stale-effectful-nodes is mutated during the iteration.
+    (run! run-nodes-in-order (into [] stale-effectful-nodes))))
 
 ;; ----------------------------------------------
 ;; Lifecycle callbacks registration

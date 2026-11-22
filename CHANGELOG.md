@@ -23,6 +23,9 @@ Fixed:
   again before the node was run.
 - Reactivity bug: A node whose signal sources change during its own run (e.g. an effect writing into a signal it
   already read) now stays stale after the run, instead of being marked as up-to-date. Stale effects are re-run accordingly.
+- `re-run-stale-effectful-nodes` now behaves the same in Clojure and ClojureScript: it re-runs the effects which are
+  stale when it is called, and the effects which become stale during the call are re-run on the next call.
+  Previously in ClojureScript, they could be re-run during the same call.
 
 ## 0.1.1
 

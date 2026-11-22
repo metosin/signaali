@@ -392,3 +392,33 @@
       (is (= 1 @b)),))
 
   ,)
+
+(deftest re-run-stale-effectful-nodes-snapshot-test
+  (testing "a self-triggering effect is re-run at most once per call to re-run-stale-effectful-nodes"
+    (let [runs (atom 0)
+          s (sr/create-signal 0)
+          e (sr/create-effect (fn []
+                                (swap! runs inc)
+                                (let [s-value @s]
+                                  (when (< s-value 3)
+                                    (swap! s inc)))))]
+      @e
+      (is (= 1 @runs))
+      (is (= :stale (sr/-get-status e)))
+
+      (sr/re-run-stale-effectful-nodes)
+      (is (= 2 @runs))
+      (is (= :stale (sr/-get-status e)))
+
+      (sr/re-run-stale-effectful-nodes)
+      (is (= 3 @runs))
+      (is (= :stale (sr/-get-status e)))
+
+      ;; s is now 3, the effect no longer writes into it.
+      (sr/re-run-stale-effectful-nodes)
+      (is (= 4 @runs))
+      (is (= :up-to-date (sr/-get-status e)))
+
+      (sr/re-run-stale-effectful-nodes)
+      (is (= 4 @runs))
+      (sr/dispose e))))
